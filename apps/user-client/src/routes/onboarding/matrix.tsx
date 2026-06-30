@@ -17,22 +17,19 @@ const CELLS: readonly Cell[] = [
     to: '/onboarding/invitation',
     label: 'I have an invitation',
     hint: 'From your operator',
-    disabled: true,
-    disabledTooltip: 'Coming with Block 2 server connection',
+    disabled: false,
   },
   {
     to: '/onboarding/pairing',
     label: 'Add this device',
     hint: "I'm already a user",
-    disabled: true,
-    disabledTooltip: 'Coming with Block 2 server connection',
+    disabled: false,
   },
   {
     to: '/onboarding/recovery',
     label: 'Use a recovery key',
     hint: 'I lost my devices',
-    disabled: true,
-    disabledTooltip: 'Coming with Block 2 server connection',
+    disabled: false,
   },
   {
     to: '/onboarding/local',
@@ -44,10 +41,9 @@ const CELLS: readonly Cell[] = [
 
 /**
  * 2×2 fullscreen intent matrix. Entry surface when no local session exists.
- * Per spec § 2 Decision 2: sorted by intent. Three cells are disabled in
- * Block 1 per spec § 4.5; only "Just this device" is interactive. Disabled
- * cells use `aria-disabled` + tooltip per UX-CONCEPT "Disabled over
- * Hidden" — they remain visible but cannot be activated.
+ * Per spec § 2 Decision 2: sorted by intent. All four cells are active;
+ * invitation, pairing, and recovery connect to a server-coupled auth-service.
+ * "Just this device" creates a local-only session with no server.
  */
 export function OnboardingMatrix() {
   // Clear any stale store state from a previous interrupted attempt.

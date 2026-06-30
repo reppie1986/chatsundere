@@ -8,6 +8,35 @@ This file is the lean orientation surface — *read first, update last* (CLAUDE.
 
 ## Current
 
+**Last updated:** 2026-06-30 — **GROK IMPORT BRANCHES MADE REACHABLE IN CHAT UI.**
+Root cause: the Grok parser detected sibling branches but only exposed the
+flattened primary `turns` array to the importer; the "import all branches" path
+was a stub, so alternate regenerated replies were counted and then discarded.
+Fix: the parser now retains every non-partial Grok turn with `_id` and
+`parent_response_id`, the importer preserves branches when requested by creating
+all messages first and then resolving Grok parent IDs to internal message IDs,
+and `ChatStream` renders one active path with sibling controls (`1/2`, `2/2`)
+for imported branch groups. Mongo extended JSON timestamps from the supplied
+Grok sample are parsed so branch ordering is stable. Regression:
+`apps/user-client/tests/data/grok-import.test.ts` imports a compact fixture from
+the supplied sample shape and verifies two assistant siblings share the same
+internal parent and navigate as `2/2` then `1/2`. Verified:
+`pnpm --filter @chatsundere/user-client test -- tests/data/grok-import.test.ts`
+and `pnpm --filter @chatsundere/user-client typecheck`.
+
+**Follow-up same session — EARLIER-MESSAGE REGENERATE MADE GENERIC.**
+Root cause: the UI only passed a parameterless regenerate action to the last
+visible persona message, and `useRegenerate` then re-found the latest complete
+persona reply by timestamp and built context from a linear `createdAt` prefix.
+Fix: `ChatStream` now wires Regenerate on every complete non-opener persona
+message and passes the clicked message plus the active visible branch path;
+`useRegenerate` replays the user turn before that exact target; native linear
+messages get parent links filled for the active path; and the stream manager
+creates a fresh assistant sibling under that user message instead of overwriting
+the old answer. Native sends now store parent links for new user/assistant rows.
+Verified with regenerate hook/store tests, chat controls/rendering tests, the
+Grok branch regression, and `pnpm --filter @chatsundere/user-client typecheck`.
+
 **Last updated:** 2026-06-27 — **V0.1.0 EARLY-ALPHA RELEASE PIPELINE SQUASHED
 TO MASTER (`7aa46eb`). NOT pushed (Chris pushes / tags / deploys).**
 The first public early alpha ships as a self-contained **frontend Docker image**

@@ -1,8 +1,8 @@
-# CLAUDE.md — Chatsundere Working Rules
+# AGENTS.md — Chatsundere Working Rules
 
-This file is the always-loaded operating context for any Claude instance (most often me, **Liz**) working in `/home/chris/workspace/chatsundere`. It is short on purpose — anything that is not always needed lives behind a pointer in §15.
+This file is the always-loaded operating context for any Codex instance (most often me, **Liz**) working in `/home/chris/workspace/chatsundere`. It is short on purpose — anything that is not always needed lives behind a pointer in §15.
 
-It complements, but does not replace, `~/.claude/CLAUDE.md` (Chris's global preferences). Where the two diverge, **this file overrides for Chatsundere only**, and the divergence is justified in an ADR under `obsidian/decisions/`.
+It complements, but does not replace, `~/.Codex/AGENTS.md` (Chris's global preferences). Where the two diverge, **this file overrides for Chatsundere only**, and the divergence is justified in an ADR under `obsidian/decisions/`.
 
 ---
 
@@ -10,8 +10,8 @@ It complements, but does not replace, `~/.claude/CLAUDE.md` (Chris's global pref
 
 Chatsundere is built by a five-entity team:
 
-- **Liz** (Claude Code, this instance) — Chefentwicklerin / lead developer. I implement: read briefs, write code, run tests, summon Larissa, push commits.
-- **Lyra** (Claude on the web) — architecture sparring and design partner with Chris. She produces the briefs in `obsidian/briefs/`. I treat her briefs as peer-reviewed input; I raise tensions with Chris rather than diverging silently.
+- **Liz** (Codex, this instance) — Chefentwicklerin / lead developer. I implement: read briefs, write code, run tests, summon Larissa, push commits.
+- **Lyra** (Codex on the web) — architecture sparring and design partner with Chris. She produces the briefs in `obsidian/briefs/`. I treat her briefs as peer-reviewed input; I raise tensions with Chris rather than diverging silently.
 - **Larissa** (Opus-class subagent, summoned by me) — security audit. She reviews changes touching `apps/auth-service`, `apps/sync-service`, `apps/proxy-service`, or `packages/crypto` before I squash them. Details in §9.
 - **Laura** (Opus-class subagent, summoned by me) — UX audit. She audits the user-client's UX: design specs before I build (her main lever), pre-squash diffs, and whole-app sweeps at milestones. Pure auditor; she never builds. Details in §9.
 - **Ann** (human) — marketing.
@@ -122,7 +122,7 @@ Source code lives only under `apps/`, `packages/`, and `infra/`. Nothing executa
 
 ## 7. Language & Communication
 
-- **Chat with Chris:** English.
+- **Chat with Chris:** German.
 - **Everything written into the repo:** British English. Spelling (`colour`, `behaviour`, `initialise`), identifiers, comments, commit messages, log strings, error messages, ADRs, briefs, READMEs, fixtures. No mixing.
 
 Enforced as a hard rule in §3 because Chatsune drifted on this point repeatedly and cleanup was costly.
@@ -136,7 +136,7 @@ Enforced as a hard rule in §3 because Chatsune drifted on this point repeatedly
 - **Granularity:** one squashed commit per feature unit. Correct units: "Set up monorepo and tooling", "Add auth-service", "Wire user-client registration". Not finer, not coarser. See [ADR 0003](obsidian/decisions/0003-squash-per-feature.md).
 - **Commit messages:** free-form imperative, no Conventional Commits prefix. Subject line capitalised.
 - **`[skip ci]` for doc-only commits.** If a commit touches only text — Markdown, ADRs, briefs, READMEs, comments without code change — append `[skip ci]` to the subject so GitHub Actions short-circuits. Mixed commits (text + code) do *not* get the tag. Use GitHub's exact form `[skip ci]` (with the space); `[skip-ci]` with a hyphen is not recognised.
-- **Co-author tag:** `Co-Authored-By: Liz (Claude Code) <noreply@anthropic.com>`.
+- **Co-author tag:** `Co-Authored-By: Liz (Codex) <noreply@anthropic.com>`.
 - **Subagents never merge, push, or switch branches.** Those responsibilities stay with me.
 
 ---
@@ -169,7 +169,7 @@ Critical and high findings are not deferrable without explicit Chris sign-off in
 
 ### 9.2 Laura — UX
 
-Laura is codified in [`.claude/agents/laura.md`](.claude/agents/laura.md) — her rubric *is* her system prompt, loaded verbatim on every summon (single source of truth, no drift). I summon her when a change in `apps/user-client` adds or alters a user-reachable flow, state, or the reachability/position of a function. Pure internals, refactors, copy fixes, and performance work are skipped — the judgement call is mine.
+Laura is codified in [`.Codex/agents/laura.md`](.Codex/agents/laura.md) — her rubric *is* her system prompt, loaded verbatim on every summon (single source of truth, no drift). I summon her when a change in `apps/user-client` adds or alters a user-reachable flow, state, or the reachability/position of a function. Pure internals, refactors, copy fixes, and performance work are skipped — the judgement call is mine.
 
 Three modes:
 
@@ -192,7 +192,7 @@ Deferrals consciously taken go in [`obsidian/insights/ux-deferrals.md`](obsidian
 - Backend tests via Bun's built-in runner. Frontend tests via Vitest.
 - No comments that restate the code. Comments explain non-obvious *why*, not *what*.
 - Every feature spec ends with a "Manual verification" section listing device-tested steps Chris will run himself.
-- **Curation fixtures grow with inference.** The curation verification harness (the standardised conversation-suite) grows with the capabilities of the inference-runner. Adapters are validated against real end-to-end protocol behaviour, never merely structurally, and never in CI (provider keys never enter CI). See the [`/curate` skill](.claude/skills/curate/).
+- **Curation fixtures grow with inference.** The curation verification harness (the standardised conversation-suite) grows with the capabilities of the inference-runner. Adapters are validated against real end-to-end protocol behaviour, never merely structurally, and never in CI (provider keys never enter CI). See the [`/curate` skill](.Codex/skills/curate/).
 
 ---
 
@@ -277,11 +277,11 @@ Load these when their topic comes up. Do not preload.
 | Past architectural decisions | `obsidian/decisions/` |
 | Project journal, gotchas, observations | `obsidian/insights/` |
 | Larissa audit deferrals | `obsidian/insights/security-deferrals.md` |
-| Laura UX audit (rubric, modes, authority) | `.claude/agents/laura.md` |
+| Laura UX audit (rubric, modes, authority) | `.Codex/agents/laura.md` |
 | Laura UX deferrals | `obsidian/insights/ux-deferrals.md` |
 | Brief hygiene for Lyra | `obsidian/briefs/README.md` |
-| Spec for this file | `superpowers/specs/2026-05-18-claude-md-design.md` |
-| Prior wisdom (read-only reference) | `~/workspace/chatsune/INSIGHTS.md`, `PRE-BRANCHING.md`, `CLAUDE.md` |
+| Spec for this file | `superpowers/specs/2026-05-18-Codex-md-design.md` |
+| Prior wisdom (read-only reference) | `~/workspace/chatsune/INSIGHTS.md`, `PRE-BRANCHING.md`, `AGENTS.md` |
 
 ---
 
