@@ -6,6 +6,7 @@ import { useSaveCodeBlockArtefact, useSaveMessageArtefact } from '../../data/art
 import { renameAttachment, useMessageAttachments } from '../../data/attachments.js';
 import { QK } from '../../data/queryKeys.js';
 import { codeSnippetTitle, messageSnippetTitle } from '../../lib/artefact-titles.js';
+import type { BranchNavigationState } from '../../lib/chat-branches.js';
 import { groupAdjacent } from '../../lib/content-blocks.js';
 import { useHighlighter } from '../../lib/markdown/highlighter.js';
 import { FONT_VAR } from '../../lib/persona-font.js';
@@ -46,6 +47,9 @@ export interface MessageBlockProps {
   onBranch?: () => void;
   /** Disable branching (stream live for this chat). */
   branchDisabled?: boolean;
+  /** Sibling-response navigation for imported conversation branches. */
+  branchNavigation?: BranchNavigationState;
+  onSelectBranch?: (messageId: string) => void;
   /** True while this message is the active streaming draft. Marks the last
    *  reasoning group as live, and switches text rendering from Markdown to
    *  per-chunk fade-in spans (each arriving token mounts a fresh span and
@@ -410,6 +414,8 @@ export function MessageBlock(p: MessageBlockProps): JSX.Element {
           onRegenerate={p.onRegenerate}
           onBranch={p.onBranch}
           branchDisabled={p.branchDisabled}
+          branchNavigation={p.branchNavigation}
+          onSelectBranch={p.onSelectBranch}
           onSave={handleSaveMessage}
           canSave={canSaveMessage}
           onReadAloud={p.onReadAloud}

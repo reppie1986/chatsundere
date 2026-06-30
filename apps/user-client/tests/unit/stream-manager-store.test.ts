@@ -122,7 +122,7 @@ describe('stream-manager.store', () => {
     const store = useStreamManagerStore.getState();
     await store.start(baseStartArgs(chatId, persona, model) as never);
     // give the .then chain a tick to run
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 250));
     const msgs = await db.messages.where('chatId').equals(chatId).sortBy('createdAt');
     expect(msgs.length).toBe(2);
     expect(msgs[0]?.role).toBe('user');
@@ -521,6 +521,63 @@ describe('stream-manager.store', () => {
     expect(user?.contentBlocks).toEqual([{ type: 'text', text: 'tell me a joke' }]);
     const count = await db.messages.where('chatId').equals(chatId).count();
     expect(count).toBe(2);
+  });
+
+  it('targeted regenerate inserts a new persona sibling without overwriting the old answer', async () => {
+    const { db, chatId, personaId } = await seedChat();
+    await db.chats.update(chatId, { title: 'kept' });
+    const persona = await db.personas.get(personaId);
+    const model = nanoGpt.offerings[0];
+    const userId = 'u1';
+    const personaMsgId = 'pm1';
+    await db.messages.add({
+      id: userId,
+      chatId,
+      role: 'user',
+      contentBlocks: [{ type: 'text', text: 'tell me a joke' }],
+      createdAt: 2,
+      bookmarked: false,
+      streamingState: 'complete',
+    });
+    await db.messages.add({
+      id: personaMsgId,
+      chatId,
+      role: 'persona',
+      contentBlocks: [{ type: 'text', text: 'old answer' }],
+      createdAt: 3,
+      bookmarked: false,
+      parentMessageId: userId,
+      streamingState: 'complete',
+    });
+
+    vi.spyOn(engine, 'runStreamEngine').mockResolvedValue({
+      finalContentBlocks: [{ type: 'text', text: 'new answer' }],
+      pillRows: [],
+      finishReason: 'stop',
+      usedTokens: 0,
+    });
+
+    const store = useStreamManagerStore.getState();
+    await store.regenerate({
+      ...baseStartArgs(chatId, persona, model),
+      userMessageText: 'tell me a joke',
+      priorMessages: [],
+      targetMessageId: personaMsgId,
+      branchParentMessageId: userId,
+    } as never);
+    await new Promise((r) => setTimeout(r, 250));
+
+    const oldRow = await db.messages.get(personaMsgId);
+    expect(oldRow?.contentBlocks).toEqual([{ type: 'text', text: 'old answer' }]);
+    const personaRows = await db.messages
+      .where('chatId')
+      .equals(chatId)
+      .filter((m) => m.role === 'persona')
+      .toArray();
+    expect(personaRows).toHaveLength(2);
+    const newRow = personaRows.find((m) => m.id !== personaMsgId);
+    expect(newRow?.parentMessageId).toBe(userId);
+    expect(newRow?.contentBlocks).toEqual([{ type: 'text', text: 'new answer' }]);
   });
 
   it('regenerate leaves target incomplete and user row intact on engine failure', async () => {

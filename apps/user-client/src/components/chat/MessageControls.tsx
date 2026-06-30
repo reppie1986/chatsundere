@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useState } from 'react';
 import type { MessageRow } from '../../boot/client-data-db.js';
+import type { BranchNavigationState } from '../../lib/chat-branches.js';
 
 interface Props {
   message: MessageRow;
@@ -11,6 +12,9 @@ interface Props {
   onBranch?: () => void;
   /** Disable branching (e.g. while a stream is live for this chat). */
   branchDisabled?: boolean;
+  /** Sibling-response navigation for imported conversation branches. */
+  branchNavigation?: BranchNavigationState;
+  onSelectBranch?: (messageId: string) => void;
   /** Save this message's visible text as a Markdown artefact. */
   onSave?: () => void;
   /** Whether the message has text to save (disabled-over-hidden otherwise). */
@@ -39,6 +43,19 @@ function stop(e: React.MouseEvent): void {
 
 export function MessageControls(p: Props): JSX.Element {
   const [readNote, setReadNote] = useState(false);
+  const previousBranch = (): void => {
+    if (!p.branchNavigation || !p.onSelectBranch) return;
+    const nextIndex =
+      (p.branchNavigation.index - 1 + p.branchNavigation.count) % p.branchNavigation.count;
+    const next = p.branchNavigation.siblings[nextIndex];
+    if (next) p.onSelectBranch(next.id);
+  };
+  const nextBranch = (): void => {
+    if (!p.branchNavigation || !p.onSelectBranch) return;
+    const nextIndex = (p.branchNavigation.index + 1) % p.branchNavigation.count;
+    const next = p.branchNavigation.siblings[nextIndex];
+    if (next) p.onSelectBranch(next.id);
+  };
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: stop-propagation wrapper div — not an interactive element, buttons inside handle keyboard events
     <div className="msg-controls" onClick={stop}>
@@ -62,6 +79,33 @@ export function MessageControls(p: Props): JSX.Element {
         >
           ↻ Regenerate
         </button>
+      ) : null}
+      {p.branchNavigation ? (
+        <span className="ctrl-branch-nav" aria-label="Branch navigation">
+          <button
+            type="button"
+            data-ctrl="branch-prev"
+            onClick={previousBranch}
+            className="ctrl-btn"
+            aria-label="Previous branch"
+            title="Previous branch"
+          >
+            ‹
+          </button>
+          <span data-testid="branch-position">
+            {p.branchNavigation.index + 1}/{p.branchNavigation.count}
+          </span>
+          <button
+            type="button"
+            data-ctrl="branch-next"
+            onClick={nextBranch}
+            className="ctrl-btn"
+            aria-label="Next branch"
+            title="Next branch"
+          >
+            ›
+          </button>
+        </span>
       ) : null}
       <button type="button" data-ctrl="copy" onClick={p.onCopy} className="ctrl-btn">
         ⎘ Copy

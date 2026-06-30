@@ -20,6 +20,7 @@ import {
   type AppliedPersonaImport,
   ChatsuneImportControl,
 } from '../../../components/persona-editor/ChatsuneImportControl.js';
+import { GrokImportDialog } from '../../../components/persona-editor/GrokImportDialog.js';
 import { Button } from '../../../components/ui/Button.js';
 import { NavTile } from '../../../components/ui/NavTile.js';
 import { PageScaffold } from '../../../components/ui/PageScaffold.js';
@@ -76,6 +77,7 @@ export function PersonaHub(): JSX.Element {
   const setAvatarMut = useSetPersonaAvatar();
   const removeAvatarMut = useRemovePersonaAvatar();
   const [pendingAvatar, setPendingAvatar] = useState<PendingAvatar>(null);
+  const [grokImportOpen, setGrokImportOpen] = useState(false);
   const [cropState, setCropState] = useState<{
     url: string;
     width: number;
@@ -482,6 +484,12 @@ export function PersonaHub(): JSX.Element {
             existingNsfw={persona.adultPersona}
             onApply={(a) => void onApplyImport(a)}
           />
+          <div className="mt-3 border-t border-white/5 pt-3">
+            <p className="mb-2 text-[11px] text-paper-soft">
+              Import Grok conversation exports into this persona.
+            </p>
+            <Button onClick={() => setGrokImportOpen(true)}>Import from Grok</Button>
+          </div>
         </section>
 
         <Button disabled title="Coming soon" className="opacity-40">
@@ -502,6 +510,11 @@ export function PersonaHub(): JSX.Element {
           onConfirm={(crop) => void confirmCrop(crop)}
         />
       ) : null}
+      <GrokImportDialog
+        open={grokImportOpen}
+        onClose={() => setGrokImportOpen(false)}
+        personaId={id ?? null}
+      />
     </PageScaffold>
   );
 }

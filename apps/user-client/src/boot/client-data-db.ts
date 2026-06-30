@@ -242,6 +242,9 @@ export interface MessageRow {
    *  excluded from every model context (wire, title-gen, lore scan). Absent on
    *  normal messages. Non-indexed — no version bump needed for this field. */
   kind?: 'opener';
+  /** Parent message in an imported conversation tree. Non-indexed so legacy
+   *  linear chats stay schema-compatible. */
+  parentMessageId?: string | null;
   streamingState: 'complete' | 'incomplete';
 }
 
