@@ -629,6 +629,10 @@ export function useSendMessage() {
 export interface RegenerateArgs {
   chatId: string;
   reasoning: ReasoningState;
+  /** Persona message to regenerate. Absent keeps the legacy last-reply path. */
+  targetMessageId?: string;
+  /** The currently visible branch path, in order. Used for branched chats. */
+  visibleMessageIds?: string[];
 }
 
 /**
@@ -657,11 +661,26 @@ export function useRegenerate() {
 
       // Locate the answer to re-roll + the prompt to replay.
       const msgs = await db.messages.where('chatId').equals(args.chatId).sortBy('createdAt');
+      const messageById = new Map(msgs.map((m) => [m.id, m]));
+      const visibleMessages = args.visibleMessageIds
+        ? args.visibleMessageIds
+            .map((id) => messageById.get(id))
+            .filter((m): m is MessageRow => m !== undefined)
+        : msgs;
 
       // Opener-only chat: no user message exists yet — re-roll the greeting instead.
-      const hasUserMessage = msgs.some((m) => m.role === 'user');
+      const explicitTarget = args.targetMessageId ? messageById.get(args.targetMessageId) : null;
+      if (args.targetMessageId && !explicitTarget) {
+        throw new Error('useRegenerate: target message not found');
+      }
+      if (explicitTarget && explicitTarget.role !== 'persona') {
+        throw new Error('useRegenerate: target is not a persona message');
+      }
+      const hasUserMessage = visibleMessages.some((m) => m.role === 'user');
       if (!hasUserMessage) {
-        const opener = [...msgs].reverse().find((m) => m.role === 'persona' && m.kind === 'opener');
+        const opener = [...visibleMessages]
+          .reverse()
+          .find((m) => m.role === 'persona' && m.kind === 'opener');
         if (!opener) throw new Error('useRegenerate: nothing to regenerate');
         const ctx = await resolvePersonaContext(args.chatId, 'useRegenerate');
         await useStreamManagerStore.getState().regenerateOpener({
@@ -682,24 +701,34 @@ export function useRegenerate() {
       }
 
       // Normal chat: find the last complete persona reply that is not an opener.
-      const target = [...msgs]
-        .reverse()
-        .find(
-          (m) => m.role === 'persona' && m.streamingState === 'complete' && m.kind !== 'opener',
-        );
+      const target =
+        explicitTarget && explicitTarget.role === 'persona' && explicitTarget.kind !== 'opener'
+          ? explicitTarget
+          : [...visibleMessages]
+              .reverse()
+              .find(
+                (m) =>
+                  m.role === 'persona' && m.streamingState === 'complete' && m.kind !== 'opener',
+              );
       if (!target) throw new Error('useRegenerate: no last persona message');
 
-      const lastUser = [...msgs]
+      const targetIndex = visibleMessages.findIndex((m) => m.id === target.id);
+      if (targetIndex === -1) throw new Error('useRegenerate: target not in active branch');
+      const lastUser = visibleMessages
+        .slice(0, targetIndex)
         .reverse()
-        .find((m) => m.role === 'user' && m.createdAt < target.createdAt);
+        .find((m) => m.role === 'user');
       if (!lastUser) throw new Error('useRegenerate: no prior user-message');
       const userMessageText = lastUser.contentBlocks
         .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
         .map((b) => b.text)
         .join('');
 
+      await ensureParentLinksForVisiblePath(visibleMessages);
+
       // Prior context excludes that user message and everything after it.
-      const priorMessages = msgs.filter((m) => m.createdAt < lastUser.createdAt);
+      const lastUserIndex = visibleMessages.findIndex((m) => m.id === lastUser.id);
+      const priorMessages = visibleMessages.slice(0, lastUserIndex);
 
       // Resolve persona chain + decrypt, then re-roll.
       const ctx = await resolvePersonaContext(args.chatId, 'useRegenerate');
@@ -746,11 +775,30 @@ export function useRegenerate() {
         artefactExpert: ctx.artefactExpert,
         mcp: ctx.mcp ?? null,
         images: ctx.images,
+        branchParentMessageId: args.targetMessageId ? lastUser.id : undefined,
       });
     },
 
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: ['chats', vars.chatId] });
     },
+  });
+}
+
+async function ensureParentLinksForVisiblePath(messages: readonly MessageRow[]): Promise<void> {
+  const db = getClientDataDb();
+  const patches: Array<{ id: string; parentMessageId: string }> = [];
+  for (let i = 1; i < messages.length; i++) {
+    const message = messages[i];
+    const parent = messages[i - 1];
+    if (!message || !parent) continue;
+    if (message.parentMessageId) continue;
+    patches.push({ id: message.id, parentMessageId: parent.id });
+  }
+  if (patches.length === 0) return;
+  await db.transaction('rw', db.messages, async () => {
+    for (const patch of patches) {
+      await db.messages.update(patch.id, { parentMessageId: patch.parentMessageId });
+    }
   });
 }

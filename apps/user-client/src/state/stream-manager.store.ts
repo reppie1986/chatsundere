@@ -130,6 +130,9 @@ type StartArgs = Omit<StartStreamArgs, 'signal' | 'onChunk'> & {
 export type RegenerateStreamArgs = StartArgs & {
   /** Existing persona MessageRow to re-roll into (cleared, then streamed). */
   targetMessageId: string;
+  /** When set, create a fresh assistant sibling under this parent instead of
+   *  overwriting the existing target. */
+  branchParentMessageId?: string | null;
 };
 
 /** Arguments required to generate or re-generate an opener greeting. A strict
@@ -394,6 +397,7 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
     const now = Date.now();
     const userMessageId = uuidv7();
     const draftMessageId = uuidv7();
+    const parentMessageId = args.priorMessages.at(-1)?.id ?? null;
 
     const linked = isLinkedForSync();
     await db.transaction(
@@ -408,6 +412,7 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
           createdAt: now,
           updatedAt: now,
           bookmarked: false,
+          parentMessageId,
           streamingState: 'complete',
         });
         // Class-1: the user message is already complete on insert → enqueue it.
@@ -421,6 +426,7 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
           createdAt: now + 1,
           updatedAt: now + 1,
           bookmarked: false,
+          parentMessageId: userMessageId,
           streamingState: 'incomplete',
         });
         // Lazy-mode re-home: at compose time a brand-new chat had no row, so the
@@ -463,18 +469,34 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
   regenerate: async (args) => {
     const db = getClientDataDb();
     const now = Date.now();
+    const draftMessageId = args.branchParentMessageId ? uuidv7() : args.targetMessageId;
 
-    // Clear the target persona message so it renders as a fresh draft, then
-    // reuse it as the stream target. The user message is never touched.
     await db.transaction('rw', db.messages, db.chats, async () => {
-      await db.messages.update(args.targetMessageId, {
-        contentBlocks: [],
-        streamingState: 'incomplete',
-      });
+      if (args.branchParentMessageId) {
+        await db.messages.add({
+          id: draftMessageId,
+          chatId: args.chatId,
+          role: 'persona',
+          contentBlocks: [],
+          createdAt: now,
+          bookmarked: false,
+          parentMessageId: args.branchParentMessageId,
+          streamingState: 'incomplete',
+        });
+      } else {
+        // Legacy no-target path: clear the target persona message so it renders
+        // as a fresh draft, then reuse it as the stream target.
+        await db.messages.update(args.targetMessageId, {
+          contentBlocks: [],
+          streamingState: 'incomplete',
+        });
+      }
       await db.chats.update(args.chatId, { lastMessageAt: now });
     });
 
-    runIntoDraft(args, args.targetMessageId, set, get, true);
+    void queryClient.invalidateQueries({ queryKey: ['chats', args.chatId] });
+
+    runIntoDraft(args, draftMessageId, set, get, !args.branchParentMessageId);
   },
 
   startOpener: async (args) => {
@@ -683,8 +705,9 @@ async function resolveUserContent(
  * Stream one turn into an already-persisted draft persona-message
  * (`draftMessageId`), mirroring tokens into a live handle and persisting the
  * final/partial content on success/failure. Shared by `start` (fresh send)
- * and `regenerate` (re-roll of the last answer). Does NOT insert any rows —
- * the caller owns row creation/clearing.
+ * and `regenerate` (re-roll of an answer). Fresh sends already created their
+ * draft row; targeted regenerate may create a sibling draft before entering
+ * this shared streaming path.
  */
 async function runIntoDraft(
   args: StartArgs,

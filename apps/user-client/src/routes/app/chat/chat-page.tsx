@@ -473,9 +473,14 @@ export function ChatPage(): JSX.Element {
     return () => document.removeEventListener('keydown', onKey);
   }, [isInteractionMode, effectivePersona, setAutoFollow, setInteractionMode]);
 
-  const onRegenerate = (): void => {
+  const onRegenerate = (targetMessageId?: string, visibleMessageIds?: string[]): void => {
     if (!activeChatId) return;
-    void regenerate.mutateAsync({ chatId: activeChatId, reasoning });
+    void regenerate.mutateAsync({
+      chatId: activeChatId,
+      reasoning,
+      targetMessageId,
+      visibleMessageIds,
+    });
   };
 
   const onConfirmCompact = async (): Promise<void> => {

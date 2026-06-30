@@ -194,6 +194,56 @@ describe('useRegenerate (non-destructive)', () => {
     expect(userStill?.contentBlocks).toEqual([{ type: 'text', text: 'tell me a joke' }]);
   });
 
+  it('regenerates the clicked earlier persona message as a sibling branch', async () => {
+    const { db, chatId, userMsgId, personaMsgId } = await seedChatWithExchange();
+    const secondUserId = uuidv7();
+    const secondPersonaId = uuidv7();
+    await db.messages.add({
+      id: secondUserId,
+      chatId,
+      role: 'user',
+      contentBlocks: [{ type: 'text', text: 'and another' }],
+      createdAt: 4,
+      bookmarked: false,
+      streamingState: 'complete',
+    });
+    await db.messages.add({
+      id: secondPersonaId,
+      chatId,
+      role: 'persona',
+      contentBlocks: [{ type: 'text', text: 'second answer' }],
+      createdAt: 5,
+      bookmarked: false,
+      streamingState: 'complete',
+    });
+
+    const regenSpy = vi
+      .spyOn(useStreamManagerStore.getState(), 'regenerate')
+      .mockResolvedValue(undefined);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useRegenerate(), { wrapper: wrapper(qc) });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        chatId,
+        reasoning: { kind: 'on' },
+        targetMessageId: personaMsgId,
+        visibleMessageIds: [userMsgId, personaMsgId, secondUserId, secondPersonaId],
+      });
+    });
+
+    expect(regenSpy).toHaveBeenCalledTimes(1);
+    const arg = regenSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(arg.targetMessageId).toBe(personaMsgId);
+    expect(arg.branchParentMessageId).toBe(userMsgId);
+    expect(arg.userMessageText).toBe('tell me a joke');
+    expect(arg.priorMessages).toEqual([]);
+
+    expect((await db.messages.get(personaMsgId))?.parentMessageId).toBe(userMsgId);
+    expect((await db.messages.get(secondUserId))?.parentMessageId).toBe(personaMsgId);
+    expect((await db.messages.get(secondPersonaId))?.parentMessageId).toBe(secondUserId);
+  });
+
   it('aborts an in-flight stream before regenerating', async () => {
     const { chatId, personaId } = await seedChatWithExchange();
     useStreamManagerStore.setState({
