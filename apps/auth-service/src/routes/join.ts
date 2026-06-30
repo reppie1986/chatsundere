@@ -116,6 +116,7 @@ export function registerJoinRoutes(app: Hono): void {
       });
 
       return c.json({
+        kind: 'invitation',
         session_id: sessionId,
         registration_response: registrationResponse,
         suggested_username: row.suggestedUsername,
@@ -194,6 +195,7 @@ export function registerJoinRoutes(app: Hono): void {
     });
 
     return c.json({
+      kind: 'pairing',
       session_id: sessionId,
       login_response: loginResponse,
       username: owner.username,
@@ -365,6 +367,7 @@ async function finishInvitation(c: Context, body: FinishBody): Promise<Response>
 
     c.header('Set-Cookie', refreshCookieFor(tokens.refreshToken));
     return c.json({
+      kind: 'invitation',
       user_id: result.id,
       username,
       role: result.role,
@@ -477,6 +480,7 @@ async function finishPairing(c: Context, body: FinishBody): Promise<Response> {
 
   c.header('Set-Cookie', refreshCookieFor(tokens.refreshToken));
   return c.json({
+    kind: 'pairing',
     user_id: userId,
     username,
     role: ownerRole,
