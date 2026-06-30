@@ -253,6 +253,9 @@ export interface MessageRow {
    *  greeting (wire-excluded, echoed to the system prompt); 'body' = an
    *  alternating user/persona turn that goes on the wire. */
   seedRole?: 'greeting' | 'body';
+  /** Parent message in an imported conversation tree. Non-indexed so legacy
+   *  linear chats stay schema-compatible. */
+  parentMessageId?: string | null;
   streamingState: 'complete' | 'incomplete';
 }
 
