@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MessageRow, PersonaRow, PillRow } from '../../boot/client-data-db.js';
 import { listCheckpoints } from '../../compaction/repo.js';
 import { useToggleBookmark } from '../../data/chats.js';
 import { QK } from '../../data/queryKeys.js';
+import { buildBranchView } from '../../lib/chat-branches.js';
 import { flattenAnswerText } from '../../lib/content-blocks.js';
 import { outOfWindowCount } from '../../lib/context-window.js';
 import { formatDateSepLabel } from '../../lib/date-separator-label.js';
@@ -63,8 +64,8 @@ export interface ChatStreamProps {
   persona: PersonaRow | null;
   displayName: string;
   streamHandle: StreamHandle | null;
-  /** Re-roll the last persona answer. Wired only to the last persona message. */
-  onRegenerate?: () => void;
+  /** Re-roll a persona answer from the current visible branch path. */
+  onRegenerate?: (messageId: string, visibleMessageIds: string[]) => void;
   /** Fork the chat at a given message. Wired to every message. */
   onBranch?: (messageId: string) => void;
   /** Disable branching across all messages (stream live for this chat). */
@@ -110,6 +111,9 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
   // it on first render after mindspaces load.
   const resolvedMindspace = useMindspaceStore((s) => s.resolved);
   const toggleBookmark = useToggleBookmark();
+  const [selectedChildByParentId, setSelectedChildByParentId] = useState<Record<string, string>>(
+    {},
+  );
 
   // Load checkpoints so we can render a CompactionMarker before each boundary message.
   const checkpointsQuery = useQuery({
@@ -122,7 +126,11 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
     return map;
   }, [checkpointsQuery.data]);
 
-  const sorted = [...p.messages].sort((a, b) => a.createdAt - b.createdAt);
+  const branchView = useMemo(
+    () => buildBranchView(p.messages, selectedChildByParentId),
+    [p.messages, selectedChildByParentId],
+  );
+  const sorted = branchView.visibleMessages;
   const pillMap = new Map(p.pills.map((x) => [x.id, x]));
   if (p.streamHandle) {
     for (const pill of p.streamHandle.pillBuffer) pillMap.set(pill.id, pill);
@@ -191,7 +199,7 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
   const roleplay = p.persona?.roleplay ?? false;
   const speakable = useMemo(() => {
     const map = new Map<string, boolean>();
-    for (const m of p.messages) {
+    for (const m of sorted) {
       if (m.role !== 'persona') continue;
       const segs = segmentMessage(m.contentBlocks, {
         mode: p.voiceMode ?? 'paragraph',
@@ -200,20 +208,14 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
       map.set(m.id, segs.length > 0);
     }
     return map;
-  }, [p.messages, p.voiceMode, roleplay]);
+  }, [sorted, p.voiceMode, roleplay]);
 
   const readReasonFor = (m: MessageRow): 'no-provider' | 'no-voice' | 'nothing' | null => {
     if (p.voiceDisabledReason) return p.voiceDisabledReason;
     return speakable.get(m.id) ? null : 'nothing';
   };
 
-  // Index of the last persona message — the only one that gets an onRegenerate handler.
-  const lastPersonaIdx = (() => {
-    for (let i = sorted.length - 1; i >= 0; i--) {
-      if (sorted[i]?.role === 'persona') return i;
-    }
-    return -1;
-  })();
+  const visibleMessageIds = sorted.map((message) => message.id);
 
   return (
     <div className="chat-stream" ref={ref} onScroll={onScroll}>
@@ -228,7 +230,8 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
         ) : null;
 
         const isDraft = p.streamHandle?.draftMessageId === m.id;
-        const isLastPersona = i === lastPersonaIdx && m.role === 'persona';
+        const canRegenerate =
+          m.role === 'persona' && m.kind !== 'opener' && m.streamingState === 'complete';
 
         // While this message is the active draft, mirror the live token
         // buffer in place of the (still-empty) DB contentBlocks — that's
@@ -239,6 +242,7 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
           isDraft && p.streamHandle ? { ...m, contentBlocks: p.streamHandle.contentBuffer } : m;
 
         const boundaryCheckpoint = checkpointByTail.get(m.id);
+        const branchNavigation = branchView.navigationByMessageId.get(m.id);
 
         return (
           <div key={m.id}>
@@ -261,9 +265,32 @@ export function ChatStream(p: ChatStreamProps): JSX.Element {
                 onToggleExpand={() => toggleExpanded(m.id)}
                 onCopy={() => copyMessageText(m)}
                 onBookmark={() => void toggleBookmark.mutateAsync(m.id)}
-                onRegenerate={isLastPersona ? p.onRegenerate : undefined}
+                onRegenerate={
+                  canRegenerate && p.onRegenerate
+                    ? () => {
+                        if (branchNavigation) {
+                          setSelectedChildByParentId((current) => {
+                            const next = { ...current };
+                            delete next[branchNavigation.parentId ?? ''];
+                            return next;
+                          });
+                        }
+                        p.onRegenerate?.(m.id, visibleMessageIds);
+                      }
+                    : undefined
+                }
                 onBranch={p.onBranch ? () => p.onBranch?.(m.id) : undefined}
                 branchDisabled={p.branchDisabled}
+                branchNavigation={branchNavigation}
+                onSelectBranch={
+                  branchNavigation
+                    ? (nextId) =>
+                        setSelectedChildByParentId((current) => ({
+                          ...current,
+                          [branchNavigation.parentId ?? '']: nextId,
+                        }))
+                    : undefined
+                }
                 isStreamingDraft={isDraft}
                 isPinned={isPinned}
                 onReadAloud={
