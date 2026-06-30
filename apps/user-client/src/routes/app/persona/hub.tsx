@@ -20,6 +20,7 @@ import {
   type AppliedPersonaImport,
   ChatsuneImportControl,
 } from '../../../components/persona-editor/ChatsuneImportControl.js';
+import { GrokImportDialog } from '../../../components/persona-editor/GrokImportDialog.js';
 import { PostImportNote } from '../../../components/persona-editor/PostImportNote.js';
 import { ExportOverlay } from '../../../components/transfer/ExportOverlay.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -84,6 +85,7 @@ export function PersonaHub(): JSX.Element {
           .justImported
       : null;
   const [showExportOverlay, setShowExportOverlay] = useState(false);
+  const [grokImportOpen, setGrokImportOpen] = useState(false);
 
   const {
     persona,
@@ -524,6 +526,12 @@ export function PersonaHub(): JSX.Element {
             existingNsfw={persona.adultPersona}
             onApply={(a) => void onApplyImport(a)}
           />
+          <div className="mt-3 border-t border-white/5 pt-3">
+            <p className="mb-2 text-[11px] text-paper-soft">
+              Import Grok conversation exports into this persona.
+            </p>
+            <Button onClick={() => setGrokImportOpen(true)}>Import from Grok</Button>
+          </div>
         </section>
 
         <Button onClick={() => setShowExportOverlay(true)}>Export persona</Button>
@@ -551,6 +559,11 @@ export function PersonaHub(): JSX.Element {
           onClose={() => setShowExportOverlay(false)}
         />
       ) : null}
+      <GrokImportDialog
+        open={grokImportOpen}
+        onClose={() => setGrokImportOpen(false)}
+        personaId={id ?? null}
+      />
     </PageScaffold>
   );
 }
