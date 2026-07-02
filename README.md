@@ -13,6 +13,9 @@ the ADRs under [`obsidian/decisions/`](obsidian/decisions/) for the trail.
 ## Quick start
 
 Full instructions: [`obsidian/ONBOARDING.md`](obsidian/ONBOARDING.md).
+Cross-device development is documented in
+[`obsidian/REMOTE_DEVELOPMENT.md`](obsidian/REMOTE_DEVELOPMENT.md); the normal
+phone workflow is HTTPS over Tailnet, not ADB reverse.
 
 ```bash
 git clone <this-repository> chatsundere
@@ -48,7 +51,7 @@ advertises the local proxy and sync URLs via `GET /api/v1/config`.
 | Directory | Contents |
 |---|---|
 | `apps/user-client` | PWA, mobile-first (port 3000) |
-| `apps/admin-client` | Admin UI (port 5174, served under `/admin/`) |
+| `apps/admin-client` | Admin UI (port 5174 directly, served under `/admin/` in the dev same-origin flow) |
 | `apps/auth-service` | OPAQUE + Passkey + JWT (port 3100) |
 | `apps/sync-service` | Encrypted vault (Phase 1, port 3200) |
 | `apps/proxy-service` | Authenticated LLM proxy (Phase 2, port 3300) |
@@ -75,6 +78,7 @@ rejects anything shorter than 40 characters.
 | Variable | Purpose | Example |
 |---|---|---|
 | `NODE_ENV` | `development` / `production` / `test` | `development` |
+| `BIND_HOST` | HTTP bind host; keep loopback unless using an explicit Tailnet profile | `127.0.0.1` |
 | `PORT` | HTTP listening port | `3100` |
 | `LOG_LEVEL` | pino level | `debug` |
 | `API_BASE_URL` | Public URL of this auth-service (JWT audience + OPAQUE server identity) | `http://localhost:3100/auth` |
@@ -85,13 +89,13 @@ rejects anything shorter than 40 characters.
 | `INVITATION_HMAC_KEY` | Keyed hashing of invitation tokens (generated) | _(generated)_ |
 | `REFRESH_TOKEN_HMAC_KEY` | Keyed hashing of refresh tokens (generated) | _(generated)_ |
 | `HMAC_KEY_PENDING_CODES` | Keyed hashing of invitation/pairing codes (generated) | _(generated)_ |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:3000,http://localhost:5174` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated exact allowed origins; never `*` | `http://localhost:3000,http://localhost:5174` |
 
 ### `apps/sync-service`
 
 | Variable | Purpose | Example |
 |---|---|---|
-| `NODE_ENV`, `PORT`, `LOG_LEVEL` | as above | `3200` |
+| `NODE_ENV`, `BIND_HOST`, `PORT`, `LOG_LEVEL` | as above | `127.0.0.1`, `3200` |
 | `DATABASE_URL` | `sync_db` (created when sync-service ships its schema) | `postgres://chatsundere:dev@localhost:5432/sync_db` |
 | `REDIS_URL` | Redis (DB 1) | `redis://localhost:6379/1` |
 | `JWT_ISSUER`, `JWT_AUDIENCE` | match auth-service | `chatsundere-auth`, `chatsundere-services` |
@@ -102,7 +106,7 @@ rejects anything shorter than 40 characters.
 
 | Variable | Purpose | Example |
 |---|---|---|
-| `NODE_ENV`, `PORT`, `LOG_LEVEL` | as above | `3300` |
+| `NODE_ENV`, `BIND_HOST`, `PORT`, `LOG_LEVEL` | as above | `127.0.0.1`, `3300` |
 | `DATABASE_URL` | `proxy_db` (Phase 2) | `postgres://chatsundere:dev@localhost:5432/proxy_db` |
 | `REDIS_URL` | Redis (DB 2) | `redis://localhost:6379/2` |
 | `JWT_ISSUER`, `JWT_AUDIENCE` | match auth-service | as above |
@@ -113,6 +117,7 @@ rejects anything shorter than 40 characters.
 
 | Variable | Purpose | Example |
 |---|---|---|
+| `DEV_BIND_HOST` | Vite dev-server bind host | `127.0.0.1` |
 | `VITE_AUTH_URL` | Auth-service base URL | `http://localhost:3100` |
 | `VITE_SYNC_URL` | Sync-service base URL | `http://localhost:3200` |
 | `VITE_PROXY_URL` | Proxy-service base URL | `http://localhost:3300` |

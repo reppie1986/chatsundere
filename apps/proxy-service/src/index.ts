@@ -25,6 +25,7 @@ const opsApp = createOpsApp();
 
 // Public forward proxy — Traefik-routed, no reserved paths.
 const publicServer = Bun.serve({
+  hostname: env.BIND_HOST,
   port: env.PORT,
   idleTimeout: env.PROXY_IDLE_TIMEOUT_S,
   fetch(req, server) {
@@ -35,11 +36,12 @@ const publicServer = Bun.serve({
 
 // Internal ops — health + metrics, NEVER Traefik-routed.
 const opsServer = Bun.serve({
+  hostname: env.BIND_HOST,
   port: env.OPS_PORT,
   fetch: opsApp.fetch,
 });
 
 logger.info(
-  { publicPort: publicServer.port, opsPort: opsServer.port },
+  { hostname: env.BIND_HOST, publicPort: publicServer.port, opsPort: opsServer.port },
   'proxy-service listening (public forward + internal ops)',
 );

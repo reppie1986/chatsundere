@@ -7,6 +7,7 @@ const num = (fallback: string) =>
 
 const EnvSchema = v.object({
   NODE_ENV: v.optional(v.picklist(['development', 'production', 'test']), 'development'),
+  BIND_HOST: v.optional(v.string(), '127.0.0.1'),
   PORT: num('8080'),
   OPS_PORT: num('9090'),
   LOG_LEVEL: v.optional(v.picklist(['trace', 'debug', 'info', 'warn', 'error', 'fatal']), 'info'),

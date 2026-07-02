@@ -35,6 +35,7 @@ function isHttpsOrLoopbackHttp(raw: string): boolean {
 
 const envSchema = object({
   NODE_ENV: string(),
+  BIND_HOST: string(),
   PORT: pipe(
     string(),
     transform((s) => Number.parseInt(s, 10) || 3100),
@@ -113,6 +114,7 @@ export type Env = ReturnType<typeof loadEnv>;
 
 export function loadEnv(): {
   NODE_ENV: string;
+  BIND_HOST: string;
   PORT: number;
   LOG_LEVEL: string;
   API_BASE_URL: string;
@@ -132,6 +134,7 @@ export function loadEnv(): {
 } {
   return parse(envSchema, {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
+    BIND_HOST: process.env.BIND_HOST ?? '127.0.0.1',
     PORT: process.env.PORT ?? '3100',
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
     API_BASE_URL: process.env.API_BASE_URL,

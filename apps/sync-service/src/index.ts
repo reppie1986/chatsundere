@@ -72,6 +72,7 @@ const opsApp = createOpsApp(readyCheck);
 // Public port: the sync API + the doorbell WebSocket upgrade (Probe-A pattern —
 // ticket check pre-upgrade, everything else → Hono).
 const publicServer = Bun.serve<TicketData>({
+  hostname: env.BIND_HOST,
   port: env.PORT,
   idleTimeout: env.WS_IDLE_TIMEOUT_S,
   async fetch(req, server) {
@@ -101,12 +102,12 @@ const publicServer = Bun.serve<TicketData>({
 });
 
 // Internal ops port: health + metrics, NEVER Traefik-routed.
-const opsServer = Bun.serve({ port: env.OPS_PORT, fetch: opsApp.fetch });
+const opsServer = Bun.serve({ hostname: env.BIND_HOST, port: env.OPS_PORT, fetch: opsApp.fetch });
 
 // Keep the pg pool referenced for the process lifetime.
 void pg;
 
 logger.info(
-  { publicPort: publicServer.port, opsPort: opsServer.port },
+  { hostname: env.BIND_HOST, publicPort: publicServer.port, opsPort: opsServer.port },
   'sync-service listening (public sync API + internal ops)',
 );
