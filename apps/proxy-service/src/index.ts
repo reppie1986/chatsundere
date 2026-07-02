@@ -9,8 +9,9 @@ const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === 'development');
 const app = createServer();
 
 const server = Bun.serve({
+  hostname: env.BIND_HOST,
   port: env.PORT,
   fetch: app.fetch,
 });
 
-logger.info({ port: server.port }, 'proxy-service listening');
+logger.info({ hostname: env.BIND_HOST, port: server.port }, 'proxy-service listening');

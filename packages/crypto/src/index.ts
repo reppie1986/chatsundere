@@ -23,7 +23,8 @@ export type {
 } from './types.js';
 export { CryptoError } from './errors.js';
 export type { CryptoErrorCode } from './errors.js';
-export { assertRuntimeSupport } from './runtime.js';
+export { assertRuntimeSupport, RuntimeUnsupportedError } from './runtime.js';
+export type { RequiredRuntimeApi } from './runtime.js';
 export { constantTimeEqual } from './primitives/constant-time.js';
 export { getRandomBytes } from './primitives/random.js';
 export { hkdfSha256, argon2id } from './primitives/kdf.js';

@@ -83,7 +83,7 @@ export function App() {
       return (
         <ErrorScreen
           title="This browser can't run Chatsundere."
-          body="Chatsundere needs the following web platform features. Please use a current browser."
+          body="Chatsundere needs the following web platform features. Use localhost or HTTPS; Web Crypto is commonly unavailable on non-local HTTP origins."
           detail={phase.missing}
         />
       );

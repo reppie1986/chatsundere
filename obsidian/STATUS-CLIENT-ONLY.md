@@ -8,7 +8,11 @@ This file is the lean orientation surface — *read first, update last* (CLAUDE.
 
 ## Current
 
-**Last updated:** 2026-06-30 — **NATIVE CHATSUNDERE TRANSFER (export/import)
+**Last updated:** 2026-07-02 — **TAILNET HTTPS DEV ACCESS + RUNTIME FAILURE
+COPY** added on `feature/tailnet-https-dev-profiles`: cross-device development
+now treats HTTPS over Tailnet/MagicDNS/reverse proxy as the normal phone path,
+with localhost/ADB documented as fallback only; runtime boot failures now list
+missing APIs instead of `unknown`. Prior entry: 2026-06-30 — **NATIVE CHATSUNDERE TRANSFER (export/import)
 COMPLETE, rebased onto master on top of the deployed v0.1.2 line (chat-usability
 + model-debugger). Import now lands in the new persona **hub**
 (`routes/app/persona/hub.tsx`, post-makeover); export is wired into the hub's

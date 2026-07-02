@@ -1,6 +1,9 @@
 # Chatsundere Status — Backend
 
-**Last updated:** 2026-06-30 — **Block 6 kick-off analysis landed**:
+**Last updated:** 2026-07-02 — **Tailnet HTTPS development profile added**:
+explicit local/Tailnet access profiles, backend bind-host plumbing, exact CORS
+origins, and remote-development docs. Prior entry: 2026-06-30 —
+**Block 6 kick-off analysis landed**:
 `BACKEND-ANALYSIS-cors-proxy-and-sync.md` (repo root) designs the two
 server-coupled workstreams — authenticated CORS proxy and zero-knowledge
 client sync — from a brainstorm with Chris. Verified ground truth

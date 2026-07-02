@@ -4,6 +4,7 @@ import * as v from 'valibot';
 
 const EnvSchema = v.object({
   NODE_ENV: v.optional(v.picklist(['development', 'production', 'test']), 'development'),
+  BIND_HOST: v.optional(v.string(), '127.0.0.1'),
   PORT: v.optional(v.pipe(v.string(), v.transform(Number), v.number()), '3200'),
   LOG_LEVEL: v.optional(v.picklist(['trace', 'debug', 'info', 'warn', 'error', 'fatal']), 'info'),
   DATABASE_URL: v.string(),

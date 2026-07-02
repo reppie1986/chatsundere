@@ -28,6 +28,10 @@ docker compose -f infra/compose.dev.yml up -d
 pnpm dev
 ```
 
+`pnpm dev` is the safe local profile: app servers bind to loopback and the
+browser opens `http://localhost:3000`. For cross-device phone testing, prefer
+Tailnet HTTPS; see [`REMOTE_DEVELOPMENT.md`](REMOTE_DEVELOPMENT.md).
+
 ### What `setup-dev.sh` does
 
 `./scripts/setup-dev.sh` is the one-time `.env` bootstrap. It copies each
@@ -47,7 +51,7 @@ undefined` at `src/index.ts:7`. Run `./scripts/setup-dev.sh` and start again.
 
 `pnpm install` does **not** build the TypeScript packages under `packages/`. The user-client imports their compiled `dist/` output (per each package's `main` field), so a fresh clone — or a fresh checkout on a different machine after `packages/*/src` has changed — needs the packages built before Vite can resolve them.
 
-The user-client's `predev` hook (`apps/user-client/package.json`) handles this automatically: any time you run `pnpm dev` in the user-client (or `pnpm dev` at the root, which fans out via Turbo), all workspace packages are rebuilt first. If you bypass that — for example by invoking `vite` directly, or launching another app standalone — run `pnpm build` (root) or `pnpm --filter './packages/*' build` manually first.
+The user-client's `predev` hook (`apps/user-client/package.json`) handles this automatically: any time you run `pnpm dev` in the user-client (or `pnpm dev` at the root, which fans out via Turbo), all workspace packages are rebuilt first through `pnpm build:packages`. If you bypass that — for example by invoking `vite` directly, or launching another app standalone — run `pnpm build:packages` manually first.
 
 Symptom of a stale `dist/`: a white screen and a Vite console error like *"does not provide an export named 'X'"*.
 
@@ -67,7 +71,8 @@ The subnet `172.28.0.0/24` is pinned in `infra/compose.dev.yml` exactly so this 
 After `pnpm dev`:
 
 - `http://localhost:3000` — user-client
-- `http://localhost:3010` — admin-client
+- `http://localhost:3000/admin` — admin-client through the user-client dev proxy
+- `http://localhost:5174` — admin-client directly
 - `http://localhost:3100` — auth-service (`/healthz`, `/readyz`, `/metrics`)
 - `http://localhost:3200` — sync-service
 - `http://localhost:3300` — proxy-service

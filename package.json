@@ -11,6 +11,9 @@
   },
   "scripts": {
     "dev": "turbo run dev",
+    "dev:local": "bash scripts/configure-dev-access.sh local && turbo run dev",
+    "dev:tailnet": "bash scripts/configure-dev-access.sh tailnet --check && turbo run dev",
+    "build:packages": "turbo run build --filter='./packages/*'",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

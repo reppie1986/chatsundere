@@ -10,21 +10,40 @@ const REQUIRED_GLOBALS = [
   'indexedDB',
 ] as const;
 
+export type RequiredRuntimeApi =
+  | (typeof REQUIRED_GLOBALS)[number]
+  | 'crypto.subtle'
+  | 'crypto.getRandomValues';
+
+export class RuntimeUnsupportedError extends CryptoError {
+  constructor(public readonly missingRequiredApis: RequiredRuntimeApi[]) {
+    super(
+      'runtime_unsupported',
+      `Missing required runtime APIs: ${missingRequiredApis.join(', ')}`,
+    );
+    this.name = 'RuntimeUnsupportedError';
+  }
+}
+
 /**
  * Refuses to continue if the runtime is missing any of the primitives this
  * library depends on. Called once at application boot. Failure is loud;
  * silent fallback is not safe in a crypto context.
  */
 export function assertRuntimeSupport(): void {
+  const missing: RequiredRuntimeApi[] = [];
   for (const name of REQUIRED_GLOBALS) {
     if (!(name in globalThis)) {
-      throw new CryptoError('runtime_unsupported', `Missing required global: ${name}`);
+      missing.push(name);
     }
   }
   if (typeof globalThis.crypto?.subtle === 'undefined') {
-    throw new CryptoError('runtime_unsupported', 'crypto.subtle is unavailable');
+    missing.push('crypto.subtle');
   }
   if (typeof globalThis.crypto?.getRandomValues !== 'function') {
-    throw new CryptoError('runtime_unsupported', 'crypto.getRandomValues is unavailable');
+    missing.push('crypto.getRandomValues');
+  }
+  if (missing.length > 0) {
+    throw new RuntimeUnsupportedError(missing);
   }
 }
