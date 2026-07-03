@@ -21,6 +21,7 @@ import {
   asMasterKey,
   asRecoveryKey,
 } from '../types.js';
+import { serverIdentityForBaseUrl } from './server-identity.js';
 
 // ---------------------------------------------------------------------------
 // Public argument / result types
@@ -155,7 +156,7 @@ export async function finishJoinByPairing(
     );
   }
 
-  const serverId = `${args.baseUrl}/auth/v1`;
+  const serverId = serverIdentityForBaseUrl(args.baseUrl);
   const { username } = args.joinState;
 
   // --- Finish OPAQUE login to obtain the export-key ----------------------------

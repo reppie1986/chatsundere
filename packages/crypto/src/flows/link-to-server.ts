@@ -12,6 +12,7 @@ import { aeadEncrypt } from '../primitives/aead.js';
 import { addIntegrityHmac, deriveIntegrityKey } from '../primitives/integrity.js';
 import type { ServerClient } from '../server-client.js';
 import type { MasterKey } from '../types.js';
+import { serverIdentityForBaseUrl } from './server-identity.js';
 
 export interface LinkToServerArgs {
   db: IDBDatabase;
@@ -34,7 +35,7 @@ export interface LinkToServerArgs {
 export async function linkToServer(args: LinkToServerArgs): Promise<void> {
   const local = requireLocalAccount(await getLocalAccount(args.db));
   const username = local.username;
-  const serverId = `${args.baseUrl}/auth/v1`;
+  const serverId = serverIdentityForBaseUrl(args.baseUrl);
 
   const { clientRegistrationState, registrationRequest } = await opaqueRegistrationStart(
     args.passphrase,

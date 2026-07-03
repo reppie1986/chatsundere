@@ -157,6 +157,14 @@ export type {
   FinishJoinByInvitationArgs,
   FinishJoinByInvitationResult,
 } from './flows/join-by-invitation.js';
+export { startFirstOwnerSetup, finishFirstOwnerSetup } from './flows/first-owner-setup.js';
+export type {
+  StartFirstOwnerSetupArgs,
+  FirstOwnerSetupState,
+  FinishFirstOwnerSetupArgs,
+  FinishFirstOwnerSetupResult,
+} from './flows/first-owner-setup.js';
+export { serverIdentityForBaseUrl } from './flows/server-identity.js';
 export { startJoinByPairing, finishJoinByPairing } from './flows/join-by-pairing.js';
 export type {
   StartJoinByPairingArgs,

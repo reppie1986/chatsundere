@@ -8,7 +8,6 @@ import { object, parse, string } from 'valibot';
 import { writeAudit } from '../audit/log.js';
 import { createDb } from '../db/client.js';
 import { authMethods, users } from '../db/schema.js';
-import { loadEnv } from '../env.js';
 import { issueTokens, refreshCookieFor } from '../jwt/issue.js';
 import { metrics } from '../metrics.js';
 import { ApiError } from '../middleware/error-envelope.js';
@@ -19,6 +18,7 @@ import {
   getServerSetup,
   storeOpaqueState,
 } from '../opaque/server.js';
+import { serverIdentityUrl } from '../public-url.js';
 import { createRedis } from '../redis/client.js';
 import { generateAuthentication, verifyAuthentication } from '../webauthn/server.js';
 import { applyLoginRateLimit } from './_rate-limit-helpers.js';
@@ -113,7 +113,6 @@ export function registerLoginRoutes(app: Hono): void {
     // With API_BASE_URL=`<host>/auth`, `${API_BASE_URL}/v1` resolves to the
     // identical string. Spec §3 anti-replay binding.
     const clientIdentifier = row?.opaqueClientIdentifier ?? body.username;
-    const env = loadEnv();
     const { serverLoginState, loginResponse } = opaqueServer.startLogin({
       serverSetup: getServerSetup(),
       registrationRecord,
@@ -121,7 +120,7 @@ export function registerLoginRoutes(app: Hono): void {
       userIdentifier,
       identifiers: {
         client: clientIdentifier,
-        server: `${env.API_BASE_URL}/v1`,
+        server: serverIdentityUrl(),
       },
     });
 

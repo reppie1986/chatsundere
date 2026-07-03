@@ -1,27 +1,36 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getLinkedAccount } from '@chatsundere/crypto';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getDb } from '../../../boot/open-db.js';
 import { Badge } from '../../../components/ui/Badge.js';
 import { Button } from '../../../components/ui/Button.js';
 import { PageScaffold } from '../../../components/ui/PageScaffold.js';
 import { useHelp } from '../../../content/help/use-help.js';
 
 /**
- * Server linking sub-page (`/app/account/server-linking`). Shows the current
- * link status as a read-only Badge and provides a "Link to server" action that
- * hands off to the invitation wizard with a return-URL pointing back here.
- *
- * Block 1 ships local-only — the serverUrl will always be null until sync lands.
+ * Server linking sub-page (`/app/account/server-linking`). Shows the persisted
+ * linked-account status and offers the invitation wizard as the explicit link
+ * path when this browser is still local-only.
  */
 export function ServerLinkingPage(): JSX.Element {
   const { onHelp, helpOverlay } = useHelp('server-linking');
   const navigate = useNavigate();
+  const [linked, setLinked] = useState<{ baseUrl: string; role: string } | null>(null);
 
-  // Block 1: always local-only. When sync lands, read from app state.
-  const serverUrl: string | null = null;
+  useEffect(() => {
+    let cancelled = false;
+    void getLinkedAccount(getDb()).then((row) => {
+      if (!cancelled) setLinked(row ? { baseUrl: row.base_url, role: row.role } : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const statusLabel = serverUrl ? `Linked to ${serverUrl}` : 'Local-only mode';
-  const statusTone = serverUrl ? 'success' : 'neutral';
+  const statusLabel = linked ? `Linked to ${linked.baseUrl}` : 'Local-only mode';
+  const statusTone = linked ? 'success' : 'neutral';
 
   return (
     <PageScaffold
@@ -38,8 +47,9 @@ export function ServerLinkingPage(): JSX.Element {
         </div>
 
         <p className="text-[11px] text-paper-soft">
-          Link this device to a server to enable cross-device sync (Block 2). Block 1 ships
-          local-only — you can run Chatsundere without ever talking to a server.
+          {linked
+            ? `This device is linked as ${linked.role}. Future sync uses this server identity.`
+            : 'Link this device to a server for cross-device identity. Local-only remains available when chosen explicitly.'}
         </p>
 
         <Button

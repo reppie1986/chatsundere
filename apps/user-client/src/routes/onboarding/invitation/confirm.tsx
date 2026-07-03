@@ -5,6 +5,7 @@ import {
   linkToServer,
   setBiometricPromptDue,
   startJoinByInvitation,
+  validateUsername,
 } from '@chatsundere/crypto';
 import { useConnectivityStore, useSessionStore } from '@chatsundere/ui-shared';
 import { useEffect, useState } from 'react';
@@ -103,9 +104,18 @@ function InvitationConfirmInner() {
     setUsernameError(null);
     setPassphraseError(null);
 
-    if (!isLateLink && username.trim().length === 0) {
+    const normalisedUsername = username.trim().toLowerCase();
+    if (!isLateLink && normalisedUsername.length === 0) {
       setUsernameError('Pick a username.');
       return;
+    }
+    if (!isLateLink) {
+      try {
+        validateUsername(normalisedUsername);
+      } catch {
+        setUsernameError('Use 3-32 lowercase letters, numbers, underscores, or hyphens.');
+        return;
+      }
     }
     if (passphrase.length === 0) {
       setPassphraseError('Enter your passphrase.');
@@ -148,7 +158,7 @@ function InvitationConfirmInner() {
           serverClient: httpServerClient,
           baseUrl: storeCtx.baseUrl,
           joinState,
-          username: username.trim(),
+          username: normalisedUsername,
           passphrase,
           issuerLabel: null,
         });

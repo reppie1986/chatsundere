@@ -11,6 +11,12 @@ import type {
 import { apiFetch } from './fetch.js';
 
 export const httpServerClient: ServerClient = {
+  ownerSetupStart: () => {
+    throw new Error('not used in admin-client');
+  },
+  ownerSetupFinish: () => {
+    throw new Error('not used in admin-client');
+  },
   loginOpaqueStart: (req: OpaqueLoginStartRequest, baseUrl: string) =>
     apiFetch<OpaqueLoginStartResponse>({
       baseUrl,

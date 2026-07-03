@@ -8,6 +8,12 @@ This file is the lean orientation surface — *read first, update last* (CLAUDE.
 
 ## Current
 
+**Session update (2026-07-03) -- SERVER-FIRST ONBOARDING FOUNDATION** added:
+the no-session entry now checks server setup status, routes `/join#code` into
+invitation acceptance, offers first-owner setup before local-only fallback, and
+the Server Linking page reads the persisted `linked_account` instead of a
+hardcoded local-only badge.
+
 **Last updated:** 2026-07-02 — **TAILNET HTTPS DEV ACCESS + RUNTIME FAILURE
 COPY** added on `feature/tailnet-https-dev-profiles`: cross-device development
 now treats HTTPS over Tailnet/MagicDNS/reverse proxy as the normal phone path,

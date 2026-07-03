@@ -7,11 +7,11 @@ import { object, parse, string } from 'valibot';
 import { writeAudit } from '../audit/log.js';
 import { createDb } from '../db/client.js';
 import { authMethods, users } from '../db/schema.js';
-import { loadEnv } from '../env.js';
 import { issueTokens, refreshCookieFor } from '../jwt/issue.js';
 import { metrics } from '../metrics.js';
 import { ApiError } from '../middleware/error-envelope.js';
 import { ensureOpaqueReady, getServerSetup } from '../opaque/server.js';
+import { serverIdentityUrl } from '../public-url.js';
 import { consumeNonce, storeNonce } from '../recovery/nonce.js';
 import { applyLoginRateLimit } from './_rate-limit-helpers.js';
 
@@ -147,8 +147,7 @@ export function registerRecoveryRoutes(app: Hono): void {
       false,
       ['verify'],
     );
-    const env = loadEnv();
-    const serverId = `${env.API_BASE_URL}/v1`;
+    const serverId = serverIdentityUrl();
     const message = concat(
       nonceBytes,
       new TextEncoder().encode(body.username),

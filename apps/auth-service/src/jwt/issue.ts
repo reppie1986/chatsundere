@@ -5,6 +5,7 @@ import { createDb } from '../db/client.js';
 import { refreshTokens } from '../db/schema.js';
 import { loadEnv } from '../env.js';
 import { metrics } from '../metrics.js';
+import { serverIdentityUrl } from '../public-url.js';
 import { getKeyMaterial } from './keys.js';
 
 let refreshKeyCache: CryptoKey | null = null;
@@ -51,7 +52,7 @@ export async function issueTokens(args: {
 }): Promise<IssuedTokens> {
   const env = loadEnv();
   const { privateKey, kid } = await getKeyMaterial();
-  const aud = `${env.API_BASE_URL}/v1`;
+  const aud = serverIdentityUrl();
 
   // jti is a per-token UUID used as the session_id for server-side per-session
   // state (currently step-up grace windows per ADR 0027; future: any per-session

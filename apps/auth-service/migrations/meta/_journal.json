@@ -43,6 +43,13 @@
       "when": 1779600000000,
       "tag": "0005_add_opaque_client_identifier",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783036800000,
+      "tag": "0006_add_server_profile",
+      "breakpoints": true
     }
   ]
 }

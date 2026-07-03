@@ -17,6 +17,7 @@ import type { ServerClient } from '../server-client.js';
 import { createMasterKeySession } from '../session.js';
 import type { MasterKeySession } from '../session.js';
 import { ARGON2ID_PARAMS, type MasterKey, WRAP_ALGO, asMasterKey } from '../types.js';
+import { serverIdentityForBaseUrl } from './server-identity.js';
 
 // ---------------------------------------------------------------------------
 // Public argument / result types
@@ -94,7 +95,7 @@ export async function recoverFromScratch(
     );
   }
 
-  const serverId = `${args.baseUrl}/auth/v1`;
+  const serverId = serverIdentityForBaseUrl(args.baseUrl);
   const rk = decodeRecoveryKey(args.recoveryKeyString);
 
   // Step 1 — Start fresh OPAQUE registration for the new passphrase.

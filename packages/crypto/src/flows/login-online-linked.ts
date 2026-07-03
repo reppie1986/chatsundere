@@ -8,6 +8,7 @@ import type { ServerClient } from '../server-client.js';
 import { type MasterKeySession, createMasterKeySession } from '../session.js';
 import type { MasterKey } from '../types.js';
 import { loginLocalWithPassphrase } from './login-local.js';
+import { serverIdentityForBaseUrl } from './server-identity.js';
 
 export interface LoginOnlineLinkedArgs {
   db: IDBDatabase;
@@ -188,7 +189,7 @@ async function runServerLogin(
   username: string,
   baseUrl: string,
 ): Promise<{ accessToken: string; role: 'primary_admin' | 'admin' | 'user' } | null> {
-  const serverId = `${baseUrl}/auth/v1`;
+  const serverId = serverIdentityForBaseUrl(baseUrl);
 
   const { clientLoginState, startLoginRequest } = await opaqueLoginStart(args.passphrase);
 

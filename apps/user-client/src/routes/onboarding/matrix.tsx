@@ -1,91 +1,177 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { getLinkedAccount, getLocalAccount } from '@chatsundere/crypto';
+import {
+  type OnboardingResolvedState,
+  parseInvitationUrlIntent,
+  resolveOnboardingState,
+} from '@chatsundere/shared-types';
+import { useSessionStore } from '@chatsundere/ui-shared';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getDb } from '../../boot/open-db.js';
+import { env } from '../../env.js';
+import { fetchSetupStatus } from '../../lib/setup-status.js';
 import { useOnboardingStore } from '../../state/onboarding.store.js';
 
-interface Cell {
-  to: string;
-  label: string;
-  hint: string;
-  disabled: boolean;
-  disabledTooltip?: string;
-}
+type Screen =
+  | { kind: 'loading' }
+  | { kind: 'ready'; state: OnboardingResolvedState; serverReachable: boolean };
 
-const CELLS: readonly Cell[] = [
-  {
-    to: '/onboarding/invitation',
-    label: 'I have an invitation',
-    hint: 'From your operator',
-    disabled: false,
-  },
-  {
-    to: '/onboarding/pairing',
-    label: 'Add this device',
-    hint: "I'm already a user",
-    disabled: false,
-  },
-  {
-    to: '/onboarding/recovery',
-    label: 'Use a recovery key',
-    hint: 'I lost my devices',
-    disabled: false,
-  },
-  {
-    to: '/onboarding/local',
-    label: 'Just this device',
-    hint: 'No server, no sync',
-    disabled: false,
-  },
-] as const;
-
-/**
- * 2×2 fullscreen intent matrix. Entry surface when no local session exists.
- * Per spec § 2 Decision 2: sorted by intent. Three cells are disabled in
- * Block 1 per spec § 4.5; only "Just this device" is interactive. Disabled
- * cells use `aria-disabled` + tooltip per UX-CONCEPT "Disabled over
- * Hidden" — they remain visible but cannot be activated.
- */
 export function OnboardingMatrix() {
-  // Clear any stale store state from a previous interrupted attempt.
+  const navigate = useNavigate();
+  const session = useSessionStore((s) => s.session);
+  const [screen, setScreen] = useState<Screen>({ kind: 'loading' });
+
   useEffect(() => useOnboardingStore.getState().reset(), []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const configuredBaseUrl = env.VITE_AUTH_URL ?? null;
+      const intent = parseInvitationUrlIntent(window.location.href, configuredBaseUrl);
+      if (intent.kind === 'invitation' && intent.base_url) {
+        useOnboardingStore.getState().setState({
+          kind: 'invitation_input',
+          baseUrl: intent.base_url,
+          code: intent.code,
+        });
+        navigate('/onboarding/invitation/confirm', { replace: true });
+        return;
+      }
+      if (intent.kind === 'invitation') {
+        useOnboardingStore.getState().setState({
+          kind: 'invitation_input',
+          baseUrl: '',
+          code: intent.code,
+        });
+        navigate('/onboarding/invitation', { replace: true });
+        return;
+      }
+
+      const [localAccount, linkedAccount, setupResult] = await Promise.all([
+        getLocalAccount(getDb()),
+        getLinkedAccount(getDb()),
+        configuredBaseUrl ? reflect(fetchSetupStatus(configuredBaseUrl)) : Promise.resolve(null),
+      ]);
+      if (cancelled) return;
+
+      const setupStatus = setupResult?.ok ? setupResult.value : null;
+      const resolved = resolveOnboardingState({
+        urlIntent: intent,
+        setupStatus,
+        hasLocalAccount: !!localAccount,
+        linkedAccount,
+        hasSession: !!session,
+      });
+
+      if (resolved.kind === 'signed_in') {
+        navigate('/app', { replace: true });
+        return;
+      }
+      if (resolved.kind === 'account_linked') {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      setScreen({
+        kind: 'ready',
+        state: resolved,
+        serverReachable: setupResult === null || setupResult.ok,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, session]);
+
+  if (screen.kind === 'loading') {
+    return <p className="mt-12 text-center text-paper-soft">Loading...</p>;
+  }
+
+  return <OnboardingEntry state={screen.state} serverReachable={screen.serverReachable} />;
+}
+
+function OnboardingEntry(props: { state: OnboardingResolvedState; serverReachable: boolean }) {
+  const setupAvailable = props.state.kind === 'server_has_no_owner';
+  const serverName =
+    props.state.kind === 'server_has_no_owner' || props.state.kind === 'signed_out'
+      ? props.state.server_display_name
+      : null;
+
   return (
-    <main className="grid min-h-dvh grid-cols-2 gap-px bg-aurora-700/20">
-      {CELLS.map((cell) =>
-        cell.disabled ? (
-          <DisabledCell key={cell.to} cell={cell} />
-        ) : (
-          <ActiveCell key={cell.to} cell={cell} />
-        ),
-      )}
+    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-6 py-8">
+      <p className="font-mono text-xs uppercase tracking-widest text-paper-soft">
+        {serverName ?? 'Chatsundere'}
+      </p>
+      <h1 className="mt-2 font-display text-4xl italic">
+        {setupAvailable ? 'Set up this server' : 'Welcome'}
+      </h1>
+      <p className="mt-2 text-sm text-paper-soft">
+        {entryCopy(props.state, props.serverReachable)}
+      </p>
+
+      <div className="mt-8 space-y-3">
+        {setupAvailable && <PrimaryLink to="/onboarding/setup">Set up this server</PrimaryLink>}
+        {!setupAvailable && (
+          <PrimaryLink to="/onboarding/recovery">Sign in to existing account</PrimaryLink>
+        )}
+        <SecondaryLink to="/onboarding/invitation">Use invitation</SecondaryLink>
+        <SecondaryLink to="/onboarding/local">Continue local-only</SecondaryLink>
+      </div>
     </main>
   );
 }
 
-function ActiveCell({ cell }: { cell: Cell }) {
+function entryCopy(state: OnboardingResolvedState, serverReachable: boolean): string {
+  if (!serverReachable) {
+    return 'The configured HTTPS server is unreachable. You can retry, use an invitation, or continue local-only.';
+  }
+  if (state.kind === 'server_has_no_owner') {
+    return 'No owner exists yet. Create the first primary admin before inviting anyone else.';
+  }
+  if (state.kind === 'recovery_required') {
+    return 'This browser has partial account state. Use recovery sign-in to restore a complete linked account.';
+  }
+  return 'Connect to your server account, redeem an invitation, or explicitly stay local-only.';
+}
+
+function PrimaryLink(props: { to: string; children: ReactNode }) {
   return (
     <Link
-      to={cell.to}
-      className="flex flex-col items-center justify-center bg-ink-soft px-4 py-6 text-center"
+      to={props.to}
+      className="block w-full rounded-[var(--radius-card)] bg-aurora-700 px-4 py-3 text-center text-sm font-medium text-paper transition-opacity hover:opacity-90"
     >
-      <div className="mb-2 h-10 w-10 rounded bg-aurora-700/20" aria-hidden />
-      <h2 className="font-display text-lg italic">{cell.label}</h2>
-      <p className="mt-1 text-xs text-paper-soft">{cell.hint}</p>
+      {props.children}
     </Link>
   );
 }
 
-function DisabledCell({ cell }: { cell: Cell }) {
+function SecondaryLink(props: { to: string; children: ReactNode }) {
   return (
-    <div
-      aria-disabled="true"
-      title={cell.disabledTooltip}
-      className="flex flex-col items-center justify-center bg-ink-soft px-4 py-6 text-center opacity-40"
+    <Link
+      to={props.to}
+      className="block w-full rounded-[var(--radius-card)] border border-aurora-700/50 px-4 py-3 text-center text-sm font-medium text-paper transition-opacity hover:opacity-90"
     >
-      <div className="mb-2 h-10 w-10 rounded bg-aurora-700/20" aria-hidden />
-      <h2 className="font-display text-lg italic">{cell.label}</h2>
-      <p className="mt-1 text-xs text-paper-soft">{cell.hint}</p>
-    </div>
+      {props.children}
+    </Link>
   );
+}
+
+interface ReflectOk<T> {
+  ok: true;
+  value: T;
+}
+
+interface ReflectErr {
+  ok: false;
+}
+
+async function reflect<T>(promise: Promise<T>): Promise<ReflectOk<T> | ReflectErr> {
+  try {
+    return { ok: true, value: await promise };
+  } catch {
+    return { ok: false };
+  }
 }

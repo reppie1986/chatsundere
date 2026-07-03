@@ -30,6 +30,14 @@ work lives in [[STATUS-CLIENT-ONLY]]. Read both at the start of every
 session; update the relevant one at the end. Anything more detailed
 than the high-level "where are we" lives elsewhere (see Pointers below).
 
+**Session update (2026-07-03) -- Server-first onboarding foundation in
+progress:** auth-service now exposes setup status plus first-owner OPAQUE setup,
+persists a singleton server profile, emits `/join#code` public invite links, and
+admin invitation creation is wired to live endpoints with Tier-4 OPAQUE step-up.
+Verification so far: direct TypeScript checks for auth-service/shared-types/
+crypto/user-client/admin-client pass; backend setup integration test loads and
+skips without local Postgres/Redis.
+
 ---
 
 ## Phase 0 — Foundation

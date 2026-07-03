@@ -13,6 +13,7 @@ import { addIntegrityHmac, deriveIntegrityKey } from '../primitives/integrity.js
 import { computeRecoveryProof, deriveVerifierKey } from '../recovery.js';
 import type { ServerClient } from '../server-client.js';
 import { WRAP_ALGO, asMasterKey } from '../types.js';
+import { serverIdentityForBaseUrl } from './server-identity.js';
 
 export interface RecoveryOnlineArgs {
   db: IDBDatabase;
@@ -56,7 +57,7 @@ export interface RecoveryOnlineArgs {
  *   8. Client persists updated linked_account and local_account rows.
  */
 export async function recoveryOnline(args: RecoveryOnlineArgs): Promise<void> {
-  const serverId = `${args.baseUrl}/auth/v1`;
+  const serverId = serverIdentityForBaseUrl(args.baseUrl);
   const rk = decodeRecoveryKey(args.recoveryKeyString);
 
   // Step 1 — start fresh OPAQUE registration for the new passphrase.

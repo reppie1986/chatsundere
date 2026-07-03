@@ -59,6 +59,8 @@ import { PairingConfirm } from './routes/onboarding/pairing/confirm.js';
 import { PairingForm } from './routes/onboarding/pairing/form.js';
 import { PairingScan } from './routes/onboarding/pairing/scan.js';
 import { OnboardingRecovery } from './routes/onboarding/recovery.js';
+import { SetupRecoveryReveal } from './routes/onboarding/setup-recovery-reveal.js';
+import { ServerSetup } from './routes/onboarding/setup.js';
 import { ProtectedRoute } from './routes/protected-route.js';
 import { Root } from './routes/root.js';
 import { useBootStore } from './state/boot.store.js';
@@ -105,6 +107,9 @@ export function App() {
                 <Route index element={<Gate />} />
                 {/* No-session routes */}
                 <Route path="/onboarding" element={<OnboardingMatrix />} />
+                <Route path="/join" element={<OnboardingMatrix />} />
+                <Route path="/onboarding/setup" element={<ServerSetup />} />
+                <Route path="/onboarding/setup/recovery" element={<SetupRecoveryReveal />} />
                 <Route path="/onboarding/invitation" element={<InvitationForm />} />
                 <Route path="/onboarding/invitation/scan" element={<InvitationScan />} />
                 <Route path="/onboarding/invitation/confirm" element={<InvitationConfirm />} />

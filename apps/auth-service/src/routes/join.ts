@@ -12,7 +12,6 @@ import { consumePendingCodeAttempt } from '../codes/rate-limit.js';
 import { hashCode, isValidCodeFormat } from '../codes/token.js';
 import { createDb } from '../db/client.js';
 import { authMethods, pendingCodes, users } from '../db/schema.js';
-import { loadEnv } from '../env.js';
 import { issueTokens, refreshCookieFor } from '../jwt/issue.js';
 import { metrics } from '../metrics.js';
 import { ApiError } from '../middleware/error-envelope.js';
@@ -24,6 +23,7 @@ import {
   getServerSetup,
   storeOpaqueState,
 } from '../opaque/server.js';
+import { serverIdentityUrl } from '../public-url.js';
 
 /**
  * Unified two-round join flow per ADR 0028 — the absorbed replacement for
@@ -170,7 +170,6 @@ export function registerJoinRoutes(app: Hono): void {
       );
     }
 
-    const env = loadEnv();
     const { serverLoginState, loginResponse } = opaqueServer.startLogin({
       serverSetup: getServerSetup(),
       registrationRecord: Buffer.from(owner.opaqueCredential).toString('base64url'),
@@ -178,7 +177,7 @@ export function registerJoinRoutes(app: Hono): void {
       userIdentifier: owner.opaqueUserIdentifier,
       identifiers: {
         client: owner.opaqueClientIdentifier,
-        server: `${env.API_BASE_URL}/v1`,
+        server: serverIdentityUrl(),
       },
     });
 
