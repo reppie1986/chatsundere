@@ -4,6 +4,8 @@ import { ready as opaqueReady, server as opaqueServer } from '@serenity-kit/opaq
 import { loadEnv } from '../env.js';
 import { createRedis } from '../redis/client.js';
 
+type OpaqueStateScope = 'register' | 'login' | 'step-up' | 'join-pairing' | 'setup-owner';
+
 let serverSetupCache: string | null = null;
 const STATE_TTL_SECONDS = 60;
 const SESSION_ID_BYTES = 16;
@@ -49,7 +51,7 @@ export function generateSessionId(): string {
 
 /** Stores per-session OPAQUE state in Redis with a short TTL. */
 export async function storeOpaqueState(args: {
-  scope: 'register' | 'login' | 'step-up' | 'join-pairing';
+  scope: OpaqueStateScope;
   sessionId: string;
   payload: Record<string, string>;
 }): Promise<void> {
@@ -67,12 +69,11 @@ export async function storeOpaqueState(args: {
  * Returns null if the session has expired or never existed.
  */
 export async function fetchOpaqueState(
-  scope: 'register' | 'login' | 'step-up' | 'join-pairing',
+  scope: OpaqueStateScope,
   sessionId: string,
 ): Promise<Record<string, string> | null> {
   const redis = createRedis();
-  const raw = await redis.get(`opaque:${scope}:${sessionId}`);
+  const raw = await redis.getdel(`opaque:${scope}:${sessionId}`);
   if (!raw) return null;
-  await redis.del(`opaque:${scope}:${sessionId}`);
   return JSON.parse(raw) as Record<string, string>;
 }

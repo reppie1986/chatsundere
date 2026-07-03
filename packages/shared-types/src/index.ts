@@ -54,6 +54,21 @@ export type {
 } from './recovery.js';
 
 export type {
+  SetupStatusResponse,
+  OwnerSetupStartRequest,
+  OwnerSetupStartResponse,
+  OwnerSetupFinishRequest,
+  OwnerSetupFinishResponse,
+} from './setup.js';
+
+export { parseInvitationUrlIntent, resolveOnboardingState } from './onboarding.js';
+export type {
+  OnboardingUrlIntent,
+  OnboardingResolvedState,
+  ResolveOnboardingStateInput,
+} from './onboarding.js';
+
+export type {
   AdminUserSummary,
   AdminUserListResponse,
   AdminAuthMethodSummary,

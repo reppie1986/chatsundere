@@ -196,10 +196,43 @@ describe.skipIf(skip)('Step-up endpoint pair', () => {
         session_id: string;
         mechanism: 'opaque';
         login_response: string;
+        opaque_client_identifier: string;
       };
       expect(body.session_id).toBeTruthy();
       expect(body.mechanism).toBe('opaque');
       expect(body.login_response).toBeTruthy();
+      expect(body.opaque_client_identifier).toBe(username);
+    });
+
+    it('returns the registration-time OPAQUE client identifier after username rename', async () => {
+      const renamed = `${username}x`.slice(0, 32);
+      const { db } = createDb();
+      await db.update(users).set({ username: renamed }).where(eq(users.id, userId));
+      try {
+        const { startLoginRequest } = opaqueClient.startLogin({ password });
+        const res = await app.request('/api/v1/auth/step-up/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+            Origin: 'http://localhost:3000',
+          },
+          body: JSON.stringify({
+            mechanism: 'opaque',
+            tier_requested: 't4',
+            login_request: startLoginRequest,
+          }),
+        });
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as {
+          mechanism: 'opaque';
+          opaque_client_identifier: string;
+        };
+        expect(body.mechanism).toBe('opaque');
+        expect(body.opaque_client_identifier).toBe(username);
+      } finally {
+        await db.update(users).set({ username }).where(eq(users.id, userId));
+      }
     });
 
     it('returns 401 without bearer', async () => {

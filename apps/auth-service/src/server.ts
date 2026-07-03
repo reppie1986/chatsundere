@@ -21,6 +21,7 @@ import { registerMePairingCodeRoutes } from './routes/me-pairing-codes.js';
 import { registerMeRoutes } from './routes/me.js';
 import { registerMetricsRoute } from './routes/metrics.js';
 import { registerRecoveryRoutes } from './routes/recovery.js';
+import { registerSetupRoutes } from './routes/setup.js';
 import { registerStepUpRoutes } from './routes/step-up.js';
 import { registerTokenRoutes } from './routes/token.js';
 
@@ -40,6 +41,7 @@ export function createServer(): Hono {
   registerJwksRoute(app);
   registerTokenRoutes(app);
   registerAuthRoutes(app);
+  registerSetupRoutes(app);
   registerStepUpRoutes(app);
   registerLinkRoutes(app);
   registerJoinRoutes(app);

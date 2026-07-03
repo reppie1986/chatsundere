@@ -6,7 +6,7 @@ import { count, eq } from 'drizzle-orm';
 import { generateCode, hashCode } from '../codes/token.js';
 import { closeDb, createDb } from '../db/client.js';
 import { authMethods, pendingCodes, users } from '../db/schema.js';
-import { loadEnv } from '../env.js';
+import { publicAppBaseUrl } from '../public-url.js';
 
 export async function main(): Promise<void> {
   const { db } = createDb();
@@ -25,7 +25,6 @@ export async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const env = loadEnv();
   const code = generateCode();
   const codeHmac = await hashCode(code);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -43,7 +42,7 @@ export async function main(): Promise<void> {
   const invitationId = inserted[0]?.id;
   if (!invitationId) throw new Error('Failed to insert invitation');
 
-  const qrUrl = `${env.API_BASE_URL}/join#${code}`;
+  const qrUrl = `${publicAppBaseUrl()}/join#${code}`;
 
   const dir = process.env.XDG_RUNTIME_DIR ?? '/tmp';
   mkdirSync(dir, { recursive: true });

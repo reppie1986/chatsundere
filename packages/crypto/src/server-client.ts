@@ -13,6 +13,10 @@ import type {
   OpaqueLoginFinishResponse,
   OpaqueLoginStartRequest,
   OpaqueLoginStartResponse,
+  OwnerSetupFinishRequest,
+  OwnerSetupFinishResponse,
+  OwnerSetupStartRequest,
+  OwnerSetupStartResponse,
   PassphraseChangeFinishRequest,
   PassphraseChangeFinishResponse,
   PassphraseChangeStartRequest,
@@ -34,6 +38,11 @@ import type {
  * package never opens HTTP itself — callers inject a concrete implementation.
  */
 export interface ServerClient {
+  ownerSetupStart?(req: OwnerSetupStartRequest, baseUrl: string): Promise<OwnerSetupStartResponse>;
+  ownerSetupFinish?(
+    req: OwnerSetupFinishRequest,
+    baseUrl: string,
+  ): Promise<OwnerSetupFinishResponse>;
   joinStart(req: JoinStartRequest, baseUrl: string): Promise<JoinStartResponse>;
   joinFinish(req: JoinFinishRequest, baseUrl: string): Promise<JoinFinishResponse>;
   linkPasskeyStart(

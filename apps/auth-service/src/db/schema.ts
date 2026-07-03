@@ -114,6 +114,13 @@ export const pendingCodes = pgTable('pending_codes', {
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
 });
 
+export const serverProfile = pgTable('server_profile', {
+  id: text('id').primaryKey().default('default'),
+  displayName: text('display_name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 export const refreshTokens = pgTable(
   'refresh_tokens',
   {

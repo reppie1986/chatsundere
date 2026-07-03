@@ -2,6 +2,7 @@
 
 import { importJWK, jwtVerify } from 'jose';
 import { loadEnv } from '../env.js';
+import { serverIdentityUrl } from '../public-url.js';
 import { getKeyMaterial } from './keys.js';
 
 export interface AccessClaims {
@@ -23,7 +24,7 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims> {
   const verifyKey = await importJWK(publicJwk, 'EdDSA');
   const { payload } = await jwtVerify(token, verifyKey, {
     issuer: 'chatsundere-auth-v1',
-    audience: `${env.API_BASE_URL}/v1`,
+    audience: serverIdentityUrl(),
     algorithms: ['EdDSA'],
   });
 

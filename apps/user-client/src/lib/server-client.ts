@@ -14,6 +14,10 @@ import type {
   OpaqueLoginFinishResponse,
   OpaqueLoginStartRequest,
   OpaqueLoginStartResponse,
+  OwnerSetupFinishRequest,
+  OwnerSetupFinishResponse,
+  OwnerSetupStartRequest,
+  OwnerSetupStartResponse,
   PassphraseChangeFinishRequest,
   PassphraseChangeFinishResponse,
   PassphraseChangeStartRequest,
@@ -32,6 +36,20 @@ import type {
 import { apiFetch } from './fetch.js';
 
 export const httpServerClient: ServerClient = {
+  ownerSetupStart: (req: OwnerSetupStartRequest, baseUrl: string) =>
+    apiFetch<OwnerSetupStartResponse>({
+      baseUrl,
+      path: '/api/v1/setup/owner/start',
+      json: req,
+      authMode: 'none',
+    }),
+  ownerSetupFinish: (req: OwnerSetupFinishRequest, baseUrl: string) =>
+    apiFetch<OwnerSetupFinishResponse>({
+      baseUrl,
+      path: '/api/v1/setup/owner/finish',
+      json: req,
+      authMode: 'none',
+    }),
   joinStart: (req: JoinStartRequest, baseUrl: string) =>
     apiFetch<JoinStartResponse>({
       baseUrl,

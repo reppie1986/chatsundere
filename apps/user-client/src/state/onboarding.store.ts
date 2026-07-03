@@ -18,6 +18,12 @@ export type OnboardingState =
       username: string;
       recoveryKeyString: string;
     }
+  | {
+      kind: 'setup_recovery';
+      userId: string;
+      username: string;
+      recoveryKeyString: string;
+    }
   | { kind: 'pairing_input'; baseUrl: string; code: string }
   | {
       kind: 'pairing_confirm';

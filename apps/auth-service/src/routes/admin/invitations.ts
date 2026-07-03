@@ -8,11 +8,11 @@ import { requireStepUp } from '../../auth/step-up.js';
 import { generateCode, hashCode } from '../../codes/token.js';
 import { createDb } from '../../db/client.js';
 import { pendingCodes } from '../../db/schema.js';
-import { loadEnv } from '../../env.js';
 import type { AccessClaims } from '../../jwt/verify.js';
 import { metrics } from '../../metrics.js';
 import { bearerAuth } from '../../middleware/auth.js';
 import { ApiError } from '../../middleware/error-envelope.js';
+import { publicAppBaseUrl } from '../../public-url.js';
 
 const createInvitationReq = object({
   role: picklist(['admin', 'user']),
@@ -101,9 +101,7 @@ export function registerAdminInvitationRoutes(app: Hono): void {
       })
       .returning({ id: pendingCodes.id });
     if (!newInvitation) throw new ApiError(500, 'internal', 'Failed to create invitation');
-    const env = loadEnv();
-    const baseUrl = env.API_BASE_URL.replace(/\/auth$/, '');
-    const qrUrl = `${baseUrl}/join#${code}`;
+    const qrUrl = `${publicAppBaseUrl()}/join#${code}`;
     await writeAudit({
       db,
       eventType: 'invitation.created',
