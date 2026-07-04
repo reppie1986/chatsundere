@@ -107,10 +107,34 @@ start_dev_infra() {
   docker compose -f infra/compose.dev.yml up -d postgres redis
 }
 
+wait_for_postgres() {
+  require_command docker
+  echo ""
+  echo "=== Waiting for Postgres ==="
+  local attempts=30
+  local delay_seconds=2
+
+  for attempt in $(seq 1 "$attempts"); do
+    if docker compose -f infra/compose.dev.yml exec -T postgres \
+      pg_isready --username chatsundere --dbname postgres >/dev/null 2>&1; then
+      echo "OK Postgres is ready."
+      return 0
+    fi
+
+    echo "Postgres is not ready yet (${attempt}/${attempts})..."
+    sleep "$delay_seconds"
+  done
+
+  echo "Postgres did not become ready in time." >&2
+  docker compose -f infra/compose.dev.yml ps postgres >&2
+  return 1
+}
+
 ensure_dev_databases() {
   require_command docker
   echo ""
   echo "=== Ensuring dev databases exist ==="
+  wait_for_postgres
   docker compose -f infra/compose.dev.yml exec -T postgres \
     psql -v ON_ERROR_STOP=1 --username chatsundere --dbname postgres <<'EOSQL'
 SELECT 'CREATE DATABASE auth_db OWNER chatsundere'
