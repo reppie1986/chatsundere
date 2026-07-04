@@ -14,7 +14,7 @@ usage() {
   cat <<'USAGE'
 Usage:
   scripts/configure-dev-access.sh local
-  scripts/configure-dev-access.sh tailnet --host <magicdns-or-dev-domain> [--scheme https]
+  scripts/configure-dev-access.sh tailnet --host <magicdns-or-dev-domain> [--host <extra-host>] [--scheme https]
   scripts/configure-dev-access.sh tailnet --check
 
 Optional Tailnet URL overrides:
@@ -60,6 +60,21 @@ valid_scheme() {
 
 valid_url() {
   [[ "$1" =~ ^https?://[^[:space:]]+$ ]]
+}
+
+join_by_comma() {
+  local IFS=,
+  printf '%s' "$*"
+}
+
+append_unique() {
+  local -n target="$1"
+  local value="$2"
+  local item
+  for item in "${target[@]}"; do
+    [[ "$item" == "$value" ]] && return 0
+  done
+  target+=("$value")
 }
 
 origin_of() {
@@ -168,7 +183,7 @@ check_tailnet() {
 configure_tailnet() {
   require_envs
 
-  local host=""
+  local hosts=()
   local scheme="https"
   local bind_host="0.0.0.0"
   local user_origin=""
@@ -181,7 +196,7 @@ configure_tailnet() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --host)
-        host="${2:-}"
+        hosts+=("${2:-}")
         shift 2
         ;;
       --scheme)
@@ -223,10 +238,17 @@ configure_tailnet() {
     esac
   done
 
-  if [[ -z "$host" ]] || ! valid_host "$host"; then
-    echo "Tailnet profile requires --host <magicdns-or-dev-domain>." >&2
+  if [[ "${#hosts[@]}" -eq 0 ]]; then
+    echo "Tailnet profile requires at least one --host <magicdns-or-dev-domain>." >&2
     exit 64
   fi
+  local host
+  for host in "${hosts[@]}"; do
+    if [[ -z "$host" ]] || ! valid_host "$host"; then
+      echo "Invalid --host: $host" >&2
+      exit 64
+    fi
+  done
   if ! valid_scheme "$scheme"; then
     echo "Invalid --scheme: $scheme" >&2
     exit 64
@@ -241,11 +263,12 @@ configure_tailnet() {
     exit 64
   fi
 
-  PUBLIC_USER_ORIGIN="${user_origin:-${scheme}://${host}}"
+  local primary_host="${hosts[0]}"
+  PUBLIC_USER_ORIGIN="${user_origin:-${scheme}://${primary_host}}"
   PUBLIC_ADMIN_ORIGIN="${admin_origin:-${PUBLIC_USER_ORIGIN}}"
-  PUBLIC_AUTH_URL="${auth_url:-${scheme}://${host}}"
-  PUBLIC_SYNC_URL="${sync_url:-${scheme}://${host}}"
-  PUBLIC_PROXY_URL="${proxy_url:-${scheme}://${host}}"
+  PUBLIC_AUTH_URL="${auth_url:-${scheme}://${primary_host}}"
+  PUBLIC_SYNC_URL="${sync_url:-${scheme}://${primary_host}}"
+  PUBLIC_PROXY_URL="${proxy_url:-${scheme}://${primary_host}}"
 
   for url in "$PUBLIC_USER_ORIGIN" "$PUBLIC_ADMIN_ORIGIN" "$PUBLIC_AUTH_URL" "$PUBLIC_SYNC_URL" "$PUBLIC_PROXY_URL"; do
     if ! valid_url "$url"; then
@@ -257,16 +280,22 @@ configure_tailnet() {
   local cors_origins
   local user_cors_origin
   local admin_cors_origin
+  local cors_list=()
   user_cors_origin="$(origin_of "$PUBLIC_USER_ORIGIN")"
   admin_cors_origin="$(origin_of "$PUBLIC_ADMIN_ORIGIN")"
-  if [[ "$user_cors_origin" == "$admin_cors_origin" ]]; then
-    cors_origins="$user_cors_origin"
-  else
-    cors_origins="${user_cors_origin},${admin_cors_origin}"
-  fi
+  append_unique cors_list "$user_cors_origin"
+  append_unique cors_list "$admin_cors_origin"
+  for host in "${hosts[@]}"; do
+    append_unique cors_list "${scheme}://${host}"
+  done
   if [[ "$include_localhost" == 1 ]]; then
-    cors_origins="${cors_origins},http://localhost:3000,http://localhost:5174"
+    append_unique cors_list "http://localhost:3000"
+    append_unique cors_list "http://localhost:5174"
   fi
+  cors_origins="$(join_by_comma "${cors_list[@]}")"
+
+  local allowed_hosts
+  allowed_hosts="$(join_by_comma "${hosts[@]}")"
 
   set_env apps/auth-service/.env BIND_HOST "$bind_host"
   set_env apps/sync-service/.env BIND_HOST "$bind_host"
@@ -275,14 +304,14 @@ configure_tailnet() {
   set_env apps/auth-service/.env CORS_ALLOWED_ORIGINS "$cors_origins"
 
   set_env apps/user-client/.env DEV_BIND_HOST "$bind_host"
-  set_env apps/user-client/.env DEV_ALLOWED_HOSTS "$host"
+  set_env apps/user-client/.env DEV_ALLOWED_HOSTS "$allowed_hosts"
   set_env apps/user-client/.env VITE_DEFAULT_BASE_URL "$PUBLIC_AUTH_URL"
   set_env apps/user-client/.env VITE_AUTH_URL "$PUBLIC_AUTH_URL"
   set_env apps/user-client/.env VITE_SYNC_URL "$PUBLIC_SYNC_URL"
   set_env apps/user-client/.env VITE_PROXY_URL "$PUBLIC_PROXY_URL"
 
   set_env apps/admin-client/.env DEV_BIND_HOST "$bind_host"
-  set_env apps/admin-client/.env DEV_ALLOWED_HOSTS "$host"
+  set_env apps/admin-client/.env DEV_ALLOWED_HOSTS "$allowed_hosts"
   set_env apps/admin-client/.env VITE_AUTH_URL "$PUBLIC_AUTH_URL"
   set_env apps/admin-client/.env VITE_SYNC_URL "$PUBLIC_SYNC_URL"
   set_env apps/admin-client/.env VITE_PROXY_URL "$PUBLIC_PROXY_URL"
