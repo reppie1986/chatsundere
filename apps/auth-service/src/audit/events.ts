@@ -3,6 +3,7 @@ import { type BaseIssue, type BaseSchema, object, optional, picklist, string } f
 
 export const AUDIT_EVENT_TYPES = [
   'user.linked',
+  'user.owner_created',
   'user.suspended',
   'user.unsuspended',
   'user.deleted_by_admin',
@@ -108,6 +109,7 @@ export const AUDIT_EVENT_SCHEMAS: Record<
   BaseSchema<unknown, unknown, BaseIssue<unknown>>
 > = {
   'user.linked': userLinkedMeta,
+  'user.owner_created': emptyMeta,
   'user.suspended': emptyMeta,
   'user.unsuspended': emptyMeta,
   'user.deleted_by_admin': emptyMeta,

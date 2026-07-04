@@ -158,9 +158,8 @@ export function registerSetupRoutes(app: Hono): void {
 
       await writeAudit({
         db,
-        eventType: 'user.linked',
+        eventType: 'user.owner_created',
         userId: result.id,
-        metadata: { role: result.role, setup: true },
       });
 
       c.header('Set-Cookie', refreshCookieFor(tokens.refreshToken));
