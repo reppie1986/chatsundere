@@ -195,3 +195,9 @@ skips without local Postgres/Redis.
 - Design briefs: `briefs/phase 0/`
 - Session journal: `insights/YYYY-MM-DD-*.md`
 - Recent commits: `git log --oneline -20`
+# Session Note 2026-07-06
+
+OPAQUE server setup persistence fixed: auth-service now requires
+`OPAQUE_SERVER_SETUP` from env instead of generating process-local OPAQUE server
+material on first use, so Tailnet/dev restarts no longer invalidate
+newly-created owner and invite accounts.

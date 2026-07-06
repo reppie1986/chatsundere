@@ -54,6 +54,14 @@ gen_secret() {
   openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
 }
 
+gen_opaque_server_setup() {
+  if [[ ! -x apps/auth-service/node_modules/.bin/opaque ]]; then
+    echo "Missing apps/auth-service/node_modules/.bin/opaque. Run pnpm install first." >&2
+    exit 127
+  fi
+  apps/auth-service/node_modules/.bin/opaque create-server-setup | sed -n '1p'
+}
+
 # Fill any empty `KEY=` assignment for the given keys in the given file, in
 # place. Non-empty values are left untouched, so this stays idempotent and also
 # repairs a .env left half-filled by an earlier run of this script.
@@ -63,7 +71,11 @@ fill_empty_secrets() {
   for key in "$@"; do
     if grep -qE "^${key}=$" "$file"; then
       local value
-      value="$(gen_secret)"
+      if [[ "$key" == "OPAQUE_SERVER_SETUP" ]]; then
+        value="$(gen_opaque_server_setup)"
+      else
+        value="$(gen_secret)"
+      fi
       sed -i "s|^${key}=$|${key}=${value}|" "$file"
       echo "  -> generated ${key}"
     fi
@@ -90,6 +102,7 @@ create_env_files() {
     if [[ "$app" == "auth-service" ]]; then
       fill_empty_secrets "$env_file" \
         AUTH_JWT_PRIVATE_KEY \
+        OPAQUE_SERVER_SETUP \
         INVITATION_HMAC_KEY \
         REFRESH_TOKEN_HMAC_KEY \
         HMAC_KEY_PENDING_CODES

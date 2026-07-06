@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { ready as opaqueReady, server as opaqueServer } from '@serenity-kit/opaque';
+import { ready as opaqueReady } from '@serenity-kit/opaque';
+import { loadEnv } from '../env.js';
 import { createRedis } from '../redis/client.js';
 
 type OpaqueStateScope = 'register' | 'login' | 'step-up' | 'join-pairing' | 'setup-owner';
 
-let serverSetupCache: string | null = null;
 const STATE_TTL_SECONDS = 60;
 const SESSION_ID_BYTES = 16;
 
@@ -17,15 +17,11 @@ export async function ensureOpaqueReady(): Promise<void> {
 /**
  * Returns the OPAQUE server setup string.
  *
- * Phase-0 limitation: this generates a fresh setup on first call and caches it for the process
- * lifetime. A restart produces a new setup, which invalidates all in-flight OPAQUE sessions.
- * In a multi-replica deployment this is also broken — every replica would have a different
- * setup. See obsidian/insights/security-deferrals.md for the deferral entry.
+ * This is private server material and must be stable across restarts. Rotating
+ * it invalidates every OPAQUE auth method registered with the previous setup.
  */
 export function getServerSetup(): string {
-  if (serverSetupCache) return serverSetupCache;
-  serverSetupCache = opaqueServer.createSetup();
-  return serverSetupCache;
+  return loadEnv().OPAQUE_SERVER_SETUP;
 }
 
 /** Generates a cryptographically random session ID as a base64url string. */

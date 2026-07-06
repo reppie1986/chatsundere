@@ -29,6 +29,7 @@ const REDACT_PATHS: string[] = [
   '*.set-cookie',
   '*.authorization',
   '*.AUTH_JWT_PRIVATE_KEY',
+  '*.OPAQUE_SERVER_SETUP',
   '*.INVITATION_HMAC_KEY',
   '*.REFRESH_TOKEN_HMAC_KEY',
   '*.HMAC_KEY_PENDING_CODES',

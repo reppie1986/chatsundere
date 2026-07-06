@@ -28,6 +28,7 @@ const envSchema = object({
   TEST_DATABASE_URL: optional(pipe(string(), regex(/^postgres:\/\//))),
   REDIS_URL: pipe(string(), regex(/^redis:\/\//)),
   AUTH_JWT_PRIVATE_KEY: pipe(string(), minLength(40)),
+  OPAQUE_SERVER_SETUP: pipe(string(), minLength(40)),
   INVITATION_HMAC_KEY: pipe(string(), minLength(40)),
   REFRESH_TOKEN_HMAC_KEY: pipe(string(), minLength(40)),
   HMAC_KEY_PENDING_CODES: pipe(string(), minLength(40)),
@@ -55,6 +56,7 @@ export function loadEnv(): {
   TEST_DATABASE_URL?: string;
   REDIS_URL: string;
   AUTH_JWT_PRIVATE_KEY: string;
+  OPAQUE_SERVER_SETUP: string;
   INVITATION_HMAC_KEY: string;
   REFRESH_TOKEN_HMAC_KEY: string;
   HMAC_KEY_PENDING_CODES: string;
@@ -70,6 +72,7 @@ export function loadEnv(): {
     TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
     AUTH_JWT_PRIVATE_KEY: process.env.AUTH_JWT_PRIVATE_KEY,
+    OPAQUE_SERVER_SETUP: process.env.OPAQUE_SERVER_SETUP,
     INVITATION_HMAC_KEY: process.env.INVITATION_HMAC_KEY,
     REFRESH_TOKEN_HMAC_KEY: process.env.REFRESH_TOKEN_HMAC_KEY,
     HMAC_KEY_PENDING_CODES: process.env.HMAC_KEY_PENDING_CODES,
