@@ -3,6 +3,7 @@
 import { getLinkedAccount } from '../db/linked-account.js';
 import { getLocalAccount, requireLocalAccount } from '../db/local-account.js';
 import { toBase64Url } from '../encoding/base64url.js';
+import { CryptoError } from '../errors.js';
 import { opaqueLoginFinish, opaqueLoginStart } from '../opaque/client.js';
 import type { ServerClient } from '../server-client.js';
 import { type MasterKeySession, createMasterKeySession } from '../session.js';
@@ -166,6 +167,12 @@ async function reflect<T>(p: Promise<T>): Promise<ReflectOk<T> | ReflectErr> {
 
 /** Returns true if the error looks like a 401 HTTP response. */
 function isAuthFailure(error: unknown): boolean {
+  if (
+    error instanceof CryptoError &&
+    (error.code === 'opaque_protocol_error' || error.code === 'wrong_passphrase')
+  ) {
+    return true;
+  }
   return (
     typeof error === 'object' &&
     error !== null &&
