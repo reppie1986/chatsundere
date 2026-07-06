@@ -23,26 +23,85 @@ function notImplemented(): never {
 export class LiveAdminApi implements AdminApi {
   constructor(private readonly baseUrl: string) {}
 
-  async listUsers(_q: UserListQuery): Promise<Paged<UserSummary>> {
-    return notImplemented();
+  async listUsers(q: UserListQuery): Promise<Paged<UserSummary>> {
+    const params = new URLSearchParams();
+    if (q.search) params.set('q', q.search);
+    const page = q.page ?? 1;
+    const perPage = q.per_page ?? 20;
+    params.set('limit', String(perPage));
+    params.set('offset', String((page - 1) * perPage));
+    const response = await apiFetch<LiveUserListResponse>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users?${params.toString()}`,
+      authMode: 'bearer',
+    });
+    const hasRoleFilter = q.role !== undefined && q.role !== 'all';
+    const hasStatusFilter = q.status !== undefined && q.status !== 'all';
+    let items = response.users.map(mapUserSummary);
+    if (hasRoleFilter) items = items.filter((user) => user.role === q.role);
+    if (hasStatusFilter) {
+      items = items.filter((user) => user.status === q.status);
+    }
+    return {
+      items,
+      total: hasRoleFilter || hasStatusFilter ? items.length : response.total,
+      page,
+      per_page: perPage,
+    };
   }
-  async getUser(_id: string): Promise<UserDetail> {
-    return notImplemented();
+
+  async getUser(id: string): Promise<UserDetail> {
+    const response = await apiFetch<LiveUserDetail>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users/${encodeURIComponent(id)}`,
+      authMode: 'bearer',
+    });
+    return mapUserDetail(response);
   }
-  async suspendUser(_id: string): Promise<void> {
-    return notImplemented();
+
+  async suspendUser(id: string): Promise<void> {
+    await apiFetch<void>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users/${encodeURIComponent(id)}/suspend`,
+      authMode: 'bearer',
+      json: {},
+    });
   }
-  async unsuspendUser(_id: string): Promise<void> {
-    return notImplemented();
+
+  async unsuspendUser(id: string): Promise<void> {
+    await apiFetch<void>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users/${encodeURIComponent(id)}/unsuspend`,
+      authMode: 'bearer',
+      json: {},
+    });
   }
-  async deleteUser(_id: string): Promise<void> {
-    return notImplemented();
+
+  async deleteUser(id: string): Promise<void> {
+    await apiFetch<void>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users/${encodeURIComponent(id)}`,
+      method: 'DELETE',
+      authMode: 'bearer',
+    });
   }
-  async changeRole(_id: string, _role: 'user' | 'admin'): Promise<void> {
-    return notImplemented();
+
+  async changeRole(id: string, role: 'user' | 'admin'): Promise<void> {
+    await apiFetch<void>({
+      baseUrl: this.baseUrl,
+      path: `/api/v1/admin/users/${encodeURIComponent(id)}/role`,
+      authMode: 'bearer',
+      json: { role },
+    });
   }
-  async transferPrimary(_id: string): Promise<void> {
-    return notImplemented();
+
+  async transferPrimary(id: string): Promise<void> {
+    await apiFetch<void>({
+      baseUrl: this.baseUrl,
+      path: '/api/v1/admin/transfer-primary',
+      authMode: 'bearer',
+      json: { target_user_id: id },
+    });
   }
   async listInvitations(_q: InvitationListQuery): Promise<Paged<InvitationSummary>> {
     const params = new URLSearchParams();
@@ -105,8 +164,43 @@ export class LiveAdminApi implements AdminApi {
     return notImplemented();
   }
   async getDashboardSummary(): Promise<DashboardSummary> {
-    return notImplemented();
+    const [users, invitations] = await Promise.all([
+      this.listUsers({ page: 1, per_page: 100 }),
+      this.listInvitations({ status: 'pending', page: 1, per_page: 100 }),
+    ]);
+    return {
+      total_users: users.total,
+      pending_invitations: invitations.total,
+      suspended_users: users.items.filter((user) => user.status === 'suspended').length,
+      recent_activity: [],
+    };
   }
+}
+
+interface LiveUser {
+  id: string;
+  username: string;
+  role: 'primary_admin' | 'admin' | 'user';
+  suspended_at: string | null;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+interface LiveUserListResponse {
+  users: LiveUser[];
+  total: number;
+}
+
+interface LiveAuthMethod {
+  id: string;
+  method_type: 'opaque' | 'passkey';
+  label: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+interface LiveUserDetail extends LiveUser {
+  auth_methods: LiveAuthMethod[];
 }
 
 interface LiveInvitation {
@@ -144,5 +238,28 @@ function mapInvitation(row: LiveInvitation): InvitationSummary {
     issuer_label: row.issuer_label,
     suggested_username: row.suggested_username,
     note: row.note,
+  };
+}
+
+function mapUserSummary(row: LiveUser): UserSummary {
+  return {
+    id: row.id,
+    username: row.username,
+    role: row.role,
+    status: row.suspended_at ? 'suspended' : 'active',
+    created_at: row.created_at,
+    last_login_at: row.last_login_at,
+  };
+}
+
+function mapUserDetail(row: LiveUserDetail): UserDetail {
+  return {
+    ...mapUserSummary(row),
+    auth_methods: row.auth_methods.map((method) => ({
+      id: method.id,
+      label: method.label,
+      type: method.method_type === 'opaque' ? 'passphrase' : 'passkey',
+      last_used_at: method.last_used_at,
+    })),
   };
 }

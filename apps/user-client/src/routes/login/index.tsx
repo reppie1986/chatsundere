@@ -114,7 +114,9 @@ export function Login() {
     setBusy(true);
     try {
       const db = getDb();
-      if (hasLinked) {
+      const linked = await getLinkedAccount(db);
+      setHasLinked(linked !== null);
+      if (linked) {
         // Double-auth: local OPAQUE + server OPAQUE.
         const { session, mk, serverOutcome } = await loginOnlineLinked({
           db,
