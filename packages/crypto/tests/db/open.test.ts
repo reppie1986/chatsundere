@@ -40,4 +40,27 @@ describe('openLocalDb', () => {
     expect(b.version).toBe(DB_VERSION);
     b.close();
   });
+
+  it('repairs version 2 databases that are missing the staging store', async () => {
+    const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = globalThis.indexedDB.open(TEST_DB, 2);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        db.createObjectStore(STORE_LOCAL_ACCOUNT, { keyPath: null });
+        db.createObjectStore(STORE_LINKED_ACCOUNT, { keyPath: null });
+        db.createObjectStore(STORE_PASSKEY_CREDENTIALS, { keyPath: 'credential_id' });
+        db.createObjectStore(STORE_FLAGS, { keyPath: 'key' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    legacy.close();
+
+    const repaired = await openLocalDb(TEST_DB);
+    const names = Array.from(repaired.objectStoreNames);
+    expect(repaired.version).toBe(DB_VERSION);
+    expect(names).toContain(STORE_STAGING);
+    expect(names).toContain(STORE_FLAGS);
+    repaired.close();
+  });
 });
