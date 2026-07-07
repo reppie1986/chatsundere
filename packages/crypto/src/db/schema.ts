@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 export const DB_NAME = 'chatsundere';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const STORE_LOCAL_ACCOUNT = 'local_account';
 export const STORE_LINKED_ACCOUNT = 'linked_account';
