@@ -34,6 +34,18 @@ describe('attachConnectivityListeners regain wiring', () => {
     expect(onRegain).toHaveBeenCalledTimes(1);
   });
 
+  it('invokes onRegain on browser resume events used by mobile Chrome', async () => {
+    const { attachConnectivityListeners } = await import('../../src/state/connectivity.store.js');
+    const onRegain = vi.fn();
+    attachConnectivityListeners({ onRegain });
+
+    window.dispatchEvent(new Event('pageshow'));
+    expect(onRegain).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new Event('focus'));
+    expect(onRegain).toHaveBeenCalledTimes(2);
+  });
+
   it('still transitions network state on online/offline events', async () => {
     const { attachConnectivityListeners, useConnectivityStore } = await import(
       '../../src/state/connectivity.store.js'

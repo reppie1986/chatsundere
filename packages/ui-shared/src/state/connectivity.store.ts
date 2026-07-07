@@ -59,13 +59,19 @@ export function attachConnectivityListeners(opts: ConnectivityListenerOptions = 
   if (typeof window === 'undefined') return;
   if (listenersAttached) return;
   listenersAttached = true;
-  window.addEventListener('online', () => {
+  const regain = () => {
     useConnectivityStore.getState().onNetworkOnline();
     opts.onRegain?.();
+  };
+
+  window.addEventListener('online', () => {
+    regain();
   });
   window.addEventListener('offline', () => useConnectivityStore.getState().onNetworkOffline());
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') opts.onRegain?.();
+    if (document.visibilityState === 'visible') regain();
   });
+  window.addEventListener('pageshow', () => regain());
+  window.addEventListener('focus', () => regain());
   if (!navigator.onLine) useConnectivityStore.getState().onNetworkOffline();
 }
