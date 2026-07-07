@@ -62,14 +62,23 @@ gen_opaque_server_setup() {
   apps/auth-service/node_modules/.bin/opaque create-server-setup | sed -n '1p'
 }
 
-# Fill any empty `KEY=` assignment for the given keys in the given file, in
-# place. Non-empty values are left untouched, so this stays idempotent and also
+# Fill any missing or empty `KEY=` assignment for the given keys in the given
+# file. Non-empty values are left untouched, so this stays idempotent and also
 # repairs a .env left half-filled by an earlier run of this script.
 fill_empty_secrets() {
   local file="$1"
   shift
   for key in "$@"; do
-    if grep -qE "^${key}=$" "$file"; then
+    if ! grep -qE "^${key}=" "$file"; then
+      local value
+      if [[ "$key" == "OPAQUE_SERVER_SETUP" ]]; then
+        value="$(gen_opaque_server_setup)"
+      else
+        value="$(gen_secret)"
+      fi
+      printf '\n%s=%s\n' "$key" "$value" >>"$file"
+      echo "  -> generated ${key}"
+    elif grep -qE "^${key}=$" "$file"; then
       local value
       if [[ "$key" == "OPAQUE_SERVER_SETUP" ]]; then
         value="$(gen_opaque_server_setup)"
