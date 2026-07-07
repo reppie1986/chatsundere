@@ -46,10 +46,7 @@ export function openLocalDb(
 
 function runMigrations(db: IDBDatabase, oldVersion: number, newVersion: number): void {
   if (oldVersion < 1 && newVersion >= 1) {
-    ensureObjectStore(db, STORE_LOCAL_ACCOUNT, { keyPath: null });
-    ensureObjectStore(db, STORE_LINKED_ACCOUNT, { keyPath: null });
-    ensureObjectStore(db, STORE_PASSKEY_CREDENTIALS, { keyPath: 'credential_id' });
-    ensureObjectStore(db, STORE_STAGING, { keyPath: 'key' });
+    ensureCoreStores(db);
   }
   if (oldVersion < 2 && newVersion >= 2) {
     ensureObjectStore(db, STORE_FLAGS, { keyPath: 'key' });
@@ -58,6 +55,17 @@ function runMigrations(db: IDBDatabase, oldVersion: number, newVersion: number):
     ensureObjectStore(db, STORE_STAGING, { keyPath: 'key' });
     ensureObjectStore(db, STORE_FLAGS, { keyPath: 'key' });
   }
+  if (oldVersion < 4 && newVersion >= 4) {
+    ensureCoreStores(db);
+    ensureObjectStore(db, STORE_FLAGS, { keyPath: 'key' });
+  }
+}
+
+function ensureCoreStores(db: IDBDatabase): void {
+  ensureObjectStore(db, STORE_LOCAL_ACCOUNT, { keyPath: null });
+  ensureObjectStore(db, STORE_LINKED_ACCOUNT, { keyPath: null });
+  ensureObjectStore(db, STORE_PASSKEY_CREDENTIALS, { keyPath: 'credential_id' });
+  ensureObjectStore(db, STORE_STAGING, { keyPath: 'key' });
 }
 
 function ensureObjectStore(db: IDBDatabase, name: string, options: IDBObjectStoreParameters): void {

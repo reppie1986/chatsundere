@@ -63,4 +63,26 @@ describe('openLocalDb', () => {
     expect(names).toContain(STORE_FLAGS);
     repaired.close();
   });
+
+  it('repairs version 3 databases that are missing core stores', async () => {
+    const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = globalThis.indexedDB.open(TEST_DB, 3);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore(STORE_FLAGS, { keyPath: 'key' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    legacy.close();
+
+    const repaired = await openLocalDb(TEST_DB);
+    const names = Array.from(repaired.objectStoreNames);
+    expect(repaired.version).toBe(DB_VERSION);
+    expect(names).toContain(STORE_LOCAL_ACCOUNT);
+    expect(names).toContain(STORE_LINKED_ACCOUNT);
+    expect(names).toContain(STORE_PASSKEY_CREDENTIALS);
+    expect(names).toContain(STORE_STAGING);
+    expect(names).toContain(STORE_FLAGS);
+    repaired.close();
+  });
 });
