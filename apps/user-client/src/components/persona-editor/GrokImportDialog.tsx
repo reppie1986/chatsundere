@@ -13,6 +13,17 @@ import { Button } from '../ui/Button.js';
 
 const PER_PAGE = 20;
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
+const MOBILE_MAX_FILE_SIZE_BYTES = 40 * 1024 * 1024;
+
+function formatFileSize(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+}
+
+function isMobileLikeBrowser(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return true;
+  return window.matchMedia?.('(pointer: coarse)').matches === true && window.innerWidth <= 900;
+}
 
 export function GrokImportDialog({
   open,
@@ -55,6 +66,13 @@ export function GrokImportDialog({
     setSelectedIds(new Set());
     setSearchQuery('');
     setPage(0);
+
+    if (isMobileLikeBrowser() && file.size > MOBILE_MAX_FILE_SIZE_BYTES) {
+      setError(
+        `File is ${formatFileSize(file.size)}; mobile browsers can reload the app while parsing large Grok exports. Use desktop for this export.`,
+      );
+      return;
+    }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError(
