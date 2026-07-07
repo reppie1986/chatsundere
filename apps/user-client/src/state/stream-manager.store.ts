@@ -479,6 +479,7 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
           role: 'persona',
           contentBlocks: [],
           createdAt: now,
+          updatedAt: now,
           bookmarked: false,
           parentMessageId: args.branchParentMessageId,
           streamingState: 'incomplete',
@@ -489,9 +490,10 @@ export const useStreamManagerStore = create<StreamManagerStore>((set, get) => ({
         await db.messages.update(args.targetMessageId, {
           contentBlocks: [],
           streamingState: 'incomplete',
+          updatedAt: now,
         });
       }
-      await db.chats.update(args.chatId, { lastMessageAt: now });
+      await db.chats.update(args.chatId, { lastMessageAt: now, updatedAt: now });
     });
 
     void queryClient.invalidateQueries({ queryKey: ['chats', args.chatId] });

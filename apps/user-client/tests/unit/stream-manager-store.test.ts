@@ -543,6 +543,7 @@ describe('stream-manager.store', () => {
       role: 'user',
       contentBlocks: [{ type: 'text', text: 'tell me a joke' }],
       createdAt: 2,
+      updatedAt: 2,
       bookmarked: false,
       streamingState: 'complete',
     });
@@ -552,6 +553,7 @@ describe('stream-manager.store', () => {
       role: 'persona',
       contentBlocks: [{ type: 'text', text: 'old answer' }],
       createdAt: 3,
+      updatedAt: 3,
       bookmarked: false,
       parentMessageId: userId,
       streamingState: 'complete',

@@ -60,10 +60,22 @@ function makeServerClient(opts: { serverSetup: string; rejectFinishWith?: Error 
     async deleteMe() {
       throw new Error('not used');
     },
+    async updateRecovery() {
+      throw new Error('not used');
+    },
+    async patchMe() {
+      throw new Error('not used');
+    },
     async passphraseChangeStart() {
       throw new Error('not used');
     },
     async passphraseChangeFinish() {
+      throw new Error('not used');
+    },
+    async stepUpStart() {
+      throw new Error('not used');
+    },
+    async stepUpFinish() {
       throw new Error('not used');
     },
     async linkPasskeyStart() {

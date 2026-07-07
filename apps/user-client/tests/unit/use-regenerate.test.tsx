@@ -204,6 +204,7 @@ describe('useRegenerate (non-destructive)', () => {
       role: 'user',
       contentBlocks: [{ type: 'text', text: 'and another' }],
       createdAt: 4,
+      updatedAt: 4,
       bookmarked: false,
       streamingState: 'complete',
     });
@@ -213,6 +214,7 @@ describe('useRegenerate (non-destructive)', () => {
       role: 'persona',
       contentBlocks: [{ type: 'text', text: 'second answer' }],
       createdAt: 5,
+      updatedAt: 5,
       bookmarked: false,
       streamingState: 'complete',
     });
