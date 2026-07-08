@@ -132,6 +132,17 @@ describe('refreshAccessToken — unreachable classes never destroy', () => {
     expect(stores.sessionState.closeAndForget).not.toHaveBeenCalled();
     expect(isAuthDegraded()).toBe(false);
   });
+
+  it('network throw + user: no destruction, not degraded', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const ok = await refreshAccessToken(AUTH_BASE, 'user');
+
+    expect(ok).toBe(false);
+    expect(stores.sessionState.closeAndForget).not.toHaveBeenCalled();
+    expect(stores.sessionState.session).not.toBeNull();
+    expect(isAuthDegraded()).toBe(false);
+  });
 });
 
 describe('refreshAccessToken — single-flight', () => {
